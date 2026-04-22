@@ -35,10 +35,16 @@
           </div>
           <h3 class="machine-name">{{ machine.name }}</h3>
           <p class="machine-model" v-if="machine.model">型号: {{ machine.model }}</p>
-          <p class="machine-desc">{{ machine.description || '暂无描述' }}</p>
+          <p class="machine-desc">{{ (machine.description || '暂无描述').substring(0, 60) }}{{ (machine.description || '').length > 60 ? '...' : '' }}</p>
           <div class="machine-specs" v-if="machine.specs">
-            <div v-for="(v, k) in machine.specs" :key="k" class="spec-item">
+            <div v-for="(v, k) in getDisplaySpecs(machine.specs)" :key="k" class="spec-item">
               <span class="spec-label">{{ k }}</span><span class="spec-value">{{ v }}</span>
+            </div>
+            <div v-if="expandedMachines[machine.id]" v-for="(v, k) in getMoreSpecs(machine.specs)" :key="k" class="spec-item">
+              <span class="spec-label">{{ k }}</span><span class="spec-value">{{ v }}</span>
+            </div>
+            <div v-if="Object.keys(machine.specs).length > 6" class="spec-toggle" @click="toggleExpand(machine.id)">
+              {{ expandedMachines[machine.id] ? '收起 ▲' : `展开全部 ${Object.keys(machine.specs).length} 项规格 ▼` }}
             </div>
           </div>
           <div class="machine-footer">
@@ -106,6 +112,25 @@ onMounted(() => {
 const filterCategory = ref('')
 const filterText = ref('')
 const currentPage = ref(1)
+const expandedMachines = ref({})
+
+// 核心规格字段（卡片默认显示）
+const coreSpecKeys = ['激光功率', '激光类型', '激光光源', '工作区域', '雕刻精度', '最大速度']
+
+function getDisplaySpecs(specs) {
+  const entries = Object.entries(specs || {})
+  if (expandedMachines.value['all'] || Object.keys(specs || {}).length <= 6) return entries
+  return entries.filter(([k]) => coreSpecKeys.includes(k)).slice(0, 6)
+}
+
+function getMoreSpecs(specs) {
+  const entries = Object.entries(specs || {})
+  return entries.filter(([k]) => !coreSpecKeys.includes(k))
+}
+
+function toggleExpand(id) {
+  expandedMachines.value[id] = !expandedMachines.value[id]
+}
 
 const filteredMachines = computed(() => {
   let list = machineStore.machines
@@ -171,5 +196,7 @@ async function handleDelete(machine) {
 .spec-item { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
 .spec-label { color: #909399; }
 .spec-value { color: #303133; font-weight: 500; }
+.spec-toggle { text-align: center; font-size: 12px; color: #409eff; cursor: pointer; padding: 4px 0 0; }
+.spec-toggle:hover { text-decoration: underline; }
 .machine-footer { display: flex; justify-content: flex-end; }
 </style>
