@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AtomStack FAQ 管理系统</title>
+    <style>
+      * { margin: 0; padding: 0; }
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; }
+      #loading { display: flex; align-items: center; justify-content: center; height: 100vh; background: #0d1b2a; color: #409eff; font-size: 18px; font-weight: 600; }
+      #loading span { animation: pulse 1.5s ease-in-out infinite; }
+      @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+    </style>
+  </head>
+  <body>
+    <div id="loading"><span>AtomStack FAQ 系统加载中...</span></div>
+    <div id="app" style="display:none"></div>
+    <script>
+      // Vue mount 后隐藏 loading
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('app').style.display = 'block';
+        }, 100);
+      });
+    </script>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
