@@ -122,7 +122,7 @@ const machineStore = useMachineStore()
 const faqStore = useFaqStore()
 
 onMounted(() => {
-  if (machineStore.machineCount === 0) initSampleData(machineStore, faqStore)
+  initSampleData(machineStore, faqStore)
 })
 
 const filterCategory = ref('')

@@ -1,7 +1,25 @@
 // AtomStack FAQ 管理系统 - 完整产品数据（自动生成）
 // 包含全线产品机型详细信息和 FAQ
 
+export const DATA_VERSION = '2026-04-23-v2'
+
 export function initSampleData(machineStore, faqStore) {
+  // 版本号检查：如果本地数据版本与当前版本不一致，清除旧数据重新加载
+  const storedVersion = localStorage.getItem('faq-data-version')
+  if (storedVersion !== DATA_VERSION) {
+    localStorage.removeItem('faq-machines')
+    localStorage.removeItem('faq-list')
+    localStorage.removeItem('faq-categories')
+    localStorage.removeItem('faq-tags')
+    localStorage.removeItem('faq-favorites')
+    localStorage.removeItem('faq-history')
+    // 重置 store 中的响应式数据
+    machineStore.machines.splice(0)
+    faqStore.faqs.splice(0)
+    faqStore.favorites.splice(0)
+    faqStore.viewHistory.splice(0)
+    localStorage.setItem('faq-data-version', DATA_VERSION)
+  }
   const now = new Date().toISOString()
 
   // ===== 机型数据 =====
