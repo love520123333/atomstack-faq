@@ -98,7 +98,7 @@
         <el-card shadow="hover">
           <template #header><span style="font-weight:600">🏷️ 热门标签</span></template>
           <div class="tag-cloud">
-            <el-tag v-for="tag in [...faqStore.tags].sort((a,b)=>b.usageCount-a.usageCount).slice(0,12)" :key="tag.id" :color="tag.color" effect="plain" class="tag-item" style="cursor:pointer;border:none" @click="$router.push({ path: '/search', query: { tag: tag.id } })">
+            <el-tag v-for="tag in [...faqStore.tags].sort((a,b)=>b.usageCount-a.usageCount).slice(0,12)" :key="tag.id" :color="tag.color" effect="plain" class="tag-item" style="cursor:pointer;border:none" @click="$router.push(`/tags/${tag.id}`)">
               {{ tag.name }} <span v-if="tag.usageCount">({{ tag.usageCount }})</span>
             </el-tag>
           </div>
@@ -110,6 +110,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { Plus } from '@element-plus/icons-vue'
 import { useFaqStore } from '../stores/faq'
 import { useMachineStore } from '../stores/machine'
@@ -117,12 +118,13 @@ import { formatDate, getPriorityColor, getPriorityText } from '../utils'
 
 const faqStore = useFaqStore()
 const machineStore = useMachineStore()
+const router = useRouter()
 
 const stats = computed(() => [
-  { label: 'FAQ 总数', value: faqStore.faqCount, color: '#409eff', action: () => {} },
-  { label: '机型总数', value: machineStore.machineCount, color: '#67c23a', action: () => {} },
-  { label: '产品分类', value: machineStore.categoryCount, color: '#e6a23c', action: () => {} },
-  { label: '我的收藏', value: faqStore.favoriteCount, color: '#f56c6c', action: () => {} }
+  { label: 'FAQ 总数', value: faqStore.faqCount, color: '#409eff', action: () => router.push('/faq') },
+  { label: '机型总数', value: machineStore.machineCount, color: '#67c23a', action: () => router.push('/machines') },
+  { label: '产品分类', value: machineStore.categoryCount, color: '#e6a23c', action: () => router.push('/categories') },
+  { label: '我的收藏', value: faqStore.favoriteCount, color: '#f56c6c', action: () => router.push('/favorites') }
 ])
 </script>
 

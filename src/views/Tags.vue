@@ -4,16 +4,16 @@
 
     <el-row :gutter="12">
       <el-col :xs="12" :sm="8" :md="6" v-for="tag in sortedTags" :key="tag.id">
-        <el-card shadow="hover" class="tag-card" :body-style="{ padding: '16px' }">
+        <el-card shadow="hover" class="tag-card" :body-style="{ padding: '16px' }" @click="$router.push(`/tags/${tag.id}`)" style="cursor:pointer">
           <div class="tag-header">
             <el-tag :color="tag.color" effect="dark" size="large" style="border:none">{{ tag.name }}</el-tag>
-            <el-dropdown trigger="click">
-              <el-button text size="small"><el-icon><MoreFilled /></el-icon></el-button>
+            <el-dropdown trigger="click" @click.stop>
+              <el-button text size="small" @click.stop><el-icon><MoreFilled /></el-icon></el-button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item @click="openDialog(tag)"><el-icon><Edit /></el-icon> 编辑</el-dropdown-item>
-                  <el-dropdown-item @click="$router.push({ path:'/search', query:{ tag: tag.id } })"><el-icon><Search /></el-icon> 搜索</el-dropdown-item>
-                  <el-dropdown-item divided @click="handleDelete(tag)"><span style="color:#f56c6c">删除</span></el-dropdown-item>
+                  <el-dropdown-item @click.stop="openDialog(tag)"><el-icon><Edit /></el-icon> 编辑</el-dropdown-item>
+                  <el-dropdown-item @click.stop="$router.push({ path:'/search', query:{ tag: tag.id } })"><el-icon><Search /></el-icon> 搜索</el-dropdown-item>
+                  <el-dropdown-item divided @click.stop="handleDelete(tag)"><span style="color:#f56c6c">删除</span></el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -68,7 +68,8 @@ async function handleDelete(tag) {
 </script>
 
 <style scoped>
-.tag-card { margin-bottom: 12px; text-align: center; }
+.tag-card { margin-bottom: 12px; text-align: center; transition: all 0.2s; }
+.tag-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
 .tag-header { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 8px; }
 .tag-count { font-size: 12px; color: #909399; }
 </style>
