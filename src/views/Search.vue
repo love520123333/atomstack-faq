@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <div class="page-title"><el-icon><Search /></el-icon> 高级搜索</div>
+    <div class="page-title"><el-icon><Search /></el-icon> {{ isHelp ? '搜索帮助' : '高级搜索' }}</div>
 
     <el-card shadow="never" class="search-card mb-16">
       <el-row :gutter="16">
@@ -54,23 +54,23 @@
         {{ selectedMachine?.name }}
       </el-tag>
       <span>全部 <strong>{{ results.length }}</strong> 条 FAQ</span>
-      <el-button type="primary" text @click="$router.push(`/machines/${optMachine}`)">查看机型详情 →</el-button>
+      <el-button type="primary" text @click="$router.push(machineDetailRoute(optMachine))">查看机型详情 →</el-button>
     </div>
 
     <div v-if="searched" style="margin-bottom:12px;color:#909399;font-size:13px">
-      找到 <strong style="color:#409eff">{{ results.length }}</strong> 条结果
+      找到 <strong style="color:#1a73e8">{{ results.length }}</strong> 条结果
       <span v-if="query"> 关键词「{{ query }}」</span>
     </div>
 
     <!-- 搜索结果 -->
     <div class="result-list" v-if="results.length">
-      <div class="result-card" v-for="item in pagedResults" :key="item.id" @click="$router.push(`/faq/${item.id}`)">
+      <div class="result-card" v-for="item in pagedResults" :key="item.id" @click="$router.push(faqRoute(item.id))">
         <div class="result-header">
           <el-tag size="small" :color="getPriorityColor(item.priority)" effect="dark" style="border:none">{{ getPriorityText(item.priority) }}</el-tag>
           <span class="result-title">{{ item.title }}</span>
           <div style="flex:1"></div>
-          <el-tag size="small" type="info" style="cursor:pointer" @click.stop="$router.push(`/machines/${item.machineId}`)">{{ machineStore.getMachine(item.machineId)?.name || '未知' }}</el-tag>
-          <el-tag v-for="tid in (item.tags||[]).slice(0,3)" :key="tid" size="small" effect="plain" style="margin-left:4px" @click.stop="$router.push(`/tags/${tid}`)">{{ faqStore.getTagName(tid) }}</el-tag>
+          <el-tag size="small" type="info" style="cursor:pointer" @click.stop="$router.push(machineDetailRoute(item.machineId))">{{ machineStore.getMachine(item.machineId)?.name || '未知' }}</el-tag>
+          <el-tag v-for="tid in (item.tags||[]).slice(0,3)" :key="tid" size="small" effect="plain" style="margin-left:4px" @click.stop="optTag=tid;doSearch()">{{ faqStore.getTagName(tid) }}</el-tag>
         </div>
         <p class="result-summary" v-if="item.summary">{{ truncate(item.summary, 150) }}</p>
         <div class="result-footer">
@@ -80,7 +80,9 @@
         </div>
       </div>
     </div>
-    <el-empty v-if="searched && !results.length" description="没有找到匹配的结果" />
+    <el-empty v-if="searched && !results.length" description="没有找到匹配的结果">
+      <el-button type="primary" @click="query='';doSearch()">清除搜索</el-button>
+    </el-empty>
 
     <div style="display:flex;justify-content:center;margin-top:20px" v-if="results.length > pageSize">
       <el-pagination v-model:current-page="currentPage" :page-size="pageSize" :total="results.length" layout="prev, pager, next" />
@@ -89,16 +91,22 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import { Search, View, Top } from '@element-plus/icons-vue'
 import { useFaqStore } from '../stores/faq'
 import { useMachineStore } from '../stores/machine'
 import { formatDate, getPriorityColor, getPriorityText, truncate } from '../utils'
+import { initSampleData } from '../data/sampleData'
 
 const route = useRoute()
 const faqStore = useFaqStore()
 const machineStore = useMachineStore()
+
+// 判断是否在帮助中心路由下
+const isHelp = computed(() => route.path.startsWith('/help'))
+function machineDetailRoute(machineId) { return isHelp.value ? `/help/machines/${machineId}` : `/machines/${machineId}` }
+function faqRoute(id) { return isHelp.value ? `/help/faq/${id}` : `/faq/${id}` }
 
 const query = ref('')
 const optMachine = ref('')
@@ -114,9 +122,25 @@ const pageSize = 20
 const selectedMachine = computed(() => machineStore.getMachine(optMachine.value))
 
 onMounted(() => {
-  if (route.query.q) { query.value = route.query.q; doSearch() }
-  if (route.query.machine) { optMachine.value = route.query.machine; doSearch() }
-  if (route.query.tag) { optTag.value = route.query.tag; doSearch() }
+  initSampleData(machineStore, faqStore)
+})
+
+// 响应 URL query 变化（包括首次加载和在当前页面改变 query 的情况）
+watchEffect(() => {
+  const q = route.query.q
+  const machine = route.query.machine
+  const tag = route.query.tag
+  const category = route.query.category
+  const priority = route.query.priority
+  if (q) { query.value = String(q) }
+  if (machine) { optMachine.value = String(machine) }
+  if (tag) { optTag.value = String(tag) }
+  if (category) { optCategory.value = String(category) }
+  if (priority) { optPriority.value = String(priority) }
+  if (q || machine || tag || category || priority) {
+    searched.value = true
+    currentPage.value = 1
+  }
 })
 
 function doSearch() {
@@ -148,18 +172,18 @@ const pagedResults = computed(() => results.value.slice((currentPage.value-1)*pa
 <style scoped>
 .machine-hint {
   display: flex; align-items: center; gap: 12px; padding: 12px 16px;
-  background: linear-gradient(135deg, #ecf5ff 0%, #f0f7ff 100%);
-  border-radius: 10px; margin-bottom: 12px; font-size: 14px; color: #606266;
+  background: linear-gradient(135deg, #e8f0fe 0%, #f0f7ff 100%);
+  border-radius: 10px; margin-bottom: 12px; font-size: 14px; color: #444;
 }
 
 .result-list { display: flex; flex-direction: column; gap: 8px; }
 .result-card {
-  padding: 16px 20px; border: 1px solid #e5e6eb; border-radius: 10px;
-  cursor: pointer; transition: all 0.2s;
+  padding: 16px 20px; border: 1px solid #f0f0f0; border-radius: 12px;
+  cursor: pointer; transition: all 0.25s; background: #fff;
 }
 .result-card:hover {
-  border-color: #409eff; background: #f0f7ff;
-  box-shadow: 0 2px 12px rgba(64,158,255,0.08);
+  border-color: #1a73e8; background: #f8fbff;
+  box-shadow: 0 4px 16px rgba(26,115,232,0.08);
   transform: translateY(-1px);
 }
 .result-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }

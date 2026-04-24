@@ -2,9 +2,9 @@
   <div class="machine-detail" v-if="machine">
     <!-- 顶部导航 -->
     <div class="detail-header">
-      <el-button text @click="$router.push('/machines')"><el-icon><ArrowLeft /></el-icon> 返回机型列表</el-button>
+      <el-button text @click="$router.push(backRoute)"><el-icon><ArrowLeft /></el-icon> {{ isHelp ? '返回帮助中心' : '返回机型列表' }}</el-button>
       <div style="flex:1"></div>
-      <el-button type="primary" :icon="Plus" @click="$router.push(`/faq/create?machine=${machine.id}`)">新建 FAQ</el-button>
+      <el-button v-if="!isHelp" type="primary" :icon="Plus" @click="$router.push(`/faq/create?machine=${machine.id}`)">新建 FAQ</el-button>
     </div>
 
     <!-- 产品概览区 -->
@@ -12,7 +12,7 @@
       <el-col :xs="24" :lg="10">
         <el-card shadow="never" class="product-card">
           <div class="product-image-wrap">
-            <img v-if="machine.image" :src="machine.image" :alt="machine.name" class="product-image" @error="handleImageError" />
+            <img v-if="machine.image && !imgError" :src="machine.image" :alt="machine.name" class="product-image" @error="handleImageError" />
             <div v-else class="product-image-placeholder">
               <el-icon :size="64"><Monitor /></el-icon>
               <span>{{ machine.name }}</span>
@@ -22,7 +22,7 @@
             <el-tag :color="machineStore.getCategory(machine.categoryId)?.color" effect="dark" size="large" style="border:none">
               {{ machineStore.getCategoryName(machine.categoryId) }}
             </el-tag>
-            <el-tag type="success" effect="plain">{{ faqStore.getFaqsByMachine(machine.id).length }} 条 FAQ</el-tag>
+            <el-tag type="success" effect="plain">{{ machineFaqs.length }} 条 FAQ</el-tag>
           </div>
         </el-card>
       </el-col>
@@ -35,11 +35,25 @@
 
           <!-- 核心参数表格 -->
           <div class="specs-section" v-if="machine.specs && Object.keys(machine.specs).length">
-            <h3 class="specs-title">📋 产品参数</h3>
+            <h3 class="specs-title">产品参数</h3>
             <div class="specs-grid">
               <div class="spec-row" v-for="(value, key) in machine.specs" :key="key">
                 <span class="spec-label">{{ key }}</span>
                 <span class="spec-value">{{ value }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 功能特性 -->
+          <div class="features-section" v-if="machine.features && machine.features.length">
+            <h3 class="specs-title">核心功能</h3>
+            <div class="features-list">
+              <div class="feature-item" v-for="(feat, idx) in machine.features" :key="idx">
+                <div class="feature-icon">{{ getFeatureIcon(idx) }}</div>
+                <div class="feature-text">
+                  <div class="feature-name">{{ feat.name || feat }}</div>
+                  <div class="feature-desc" v-if="feat.desc">{{ feat.desc }}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -51,7 +65,7 @@
     <el-card shadow="never" class="faq-section" style="margin-top:20px">
       <template #header>
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-weight:700;font-size:16px">📖 全部 FAQ（{{ machineFaqs.length }} 条）</span>
+          <span style="font-weight:700;font-size:16px">全部 FAQ（{{ machineFaqs.length }} 条）</span>
           <el-input v-model="faqSearch" placeholder="搜索 FAQ..." :prefix-icon="Search" clearable style="width:260px" />
         </div>
       </template>
@@ -59,15 +73,15 @@
       <!-- FAQ 分类筛选 -->
       <div class="faq-filter-tags" style="margin-bottom:16px">
         <el-check-tag :checked="faqFilter === ''" @change="faqFilter = ''">全部</el-check-tag>
-        <el-check-tag v-for="tag in faqStore.tags.filter(t => t.usageCount > 0)" :key="tag.id"
-          :checked="faqFilter === tag.id" @change="faqFilter = tag.id">
+        <el-check-tag v-for="tag in machineUsedTags" :key="tag.id"
+          :checked="faqFilter === tag.id" @change="faqFilter = faqFilter === tag.id ? '' : tag.id">
           {{ tag.name }} ({{ machineFaqs.filter(f => f.tags && f.tags.includes(tag.id)).length }})
         </el-check-tag>
       </div>
 
       <!-- FAQ 列表 -->
       <div class="faq-list" v-if="filteredFaqs.length">
-        <div class="faq-item" v-for="faq in filteredFaqs" :key="faq.id" @click="$router.push(`/faq/${faq.id}`)">
+        <div class="faq-item" v-for="faq in filteredFaqs" :key="faq.id" @click="$router.push(faqRoute(faq.id))">
           <div class="faq-item-header">
             <el-tag size="small" :color="getPriorityColor(faq.priority)" effect="dark" style="border:none">
               {{ getPriorityText(faq.priority) }}
@@ -95,25 +109,34 @@
   <!-- 机型不存在 -->
   <div v-else class="not-found">
     <el-empty description="机型不存在">
-      <el-button type="primary" @click="$router.push('/machines')">返回机型列表</el-button>
+      <el-button type="primary" @click="$router.push(backRoute)">{{ isHelp ? '返回帮助中心' : '返回机型列表' }}</el-button>
     </el-empty>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import { ArrowLeft, ArrowRight, Plus, Search, Monitor, View, Top } from '@element-plus/icons-vue'
 import { useFaqStore } from '../stores/faq'
 import { useMachineStore } from '../stores/machine'
 import { getPriorityColor, getPriorityText, truncate } from '../utils'
+import { initSampleData } from '../data/sampleData'
 
 const route = useRoute()
 const faqStore = useFaqStore()
 const machineStore = useMachineStore()
 
+// 判断是否在帮助中心路由下
+const isHelp = computed(() => route.path.startsWith('/help'))
+const backRoute = computed(() => isHelp.value ? '/help' : '/machines')
+
 const faqSearch = ref('')
 const faqFilter = ref('')
+const imgError = ref(false)
+
+// 动态生成 FAQ 路由
+function faqRoute(id) { return isHelp.value ? `/help/faq/${id}` : `/faq/${id}` }
 
 const machine = computed(() => {
   const id = route.params.id
@@ -145,9 +168,31 @@ const filteredFaqs = computed(() => {
   return result
 })
 
-function handleImageError(e) {
-  e.target.style.display = 'none'
+// 只显示该机型 FAQ 中实际使用到的标签（用于筛选，更精准）
+const machineUsedTags = computed(() => {
+  const usedTagIds = new Set()
+  for (const faq of machineFaqs.value) {
+    if (faq.tags) faq.tags.forEach(tid => usedTagIds.add(tid))
+  }
+  return faqStore.tags.filter(t => usedTagIds.has(t.id))
+})
+
+function handleImageError() {
+  imgError.value = true
 }
+
+function getFeatureIcon(idx) {
+  const icons = ['🔧', '⚡', '🎯', '🛡️', '📐', '💡', '🔄', '📊']
+  return icons[idx % icons.length]
+}
+
+onMounted(() => {
+  initSampleData(machineStore, faqStore)
+})
+
+// 切换机型时重置图片错误状态
+watch(() => route.params.id, () => { imgError.value = false })
+
 </script>
 
 <style scoped>
@@ -195,6 +240,19 @@ function handleImageError(e) {
   font-size: 13px; color: #1d2129; font-weight: 500;
 }
 
+/* 功能特性 */
+.features-section { border-top: 1px solid #e5e6eb; padding-top: 20px; margin-top: 20px; }
+.features-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.feature-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px; border-radius: 10px; background: #f8f9fb;
+  transition: all 0.2s;
+}
+.feature-item:hover { background: #eef3ff; transform: translateY(-1px); }
+.feature-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+.feature-name { font-size: 14px; font-weight: 600; color: #1d2129; }
+.feature-desc { font-size: 12px; color: #86909c; margin-top: 2px; line-height: 1.5; }
+
 .faq-section :deep(.el-card__header) { padding: 16px 20px; }
 .faq-filter-tags { display: flex; gap: 8px; flex-wrap: wrap; }
 .faq-filter-tags .el-check-tag { border-radius: 16px; }
@@ -205,8 +263,8 @@ function handleImageError(e) {
   cursor: pointer; transition: all 0.2s;
 }
 .faq-item:hover {
-  border-color: #409eff; background: #f0f7ff;
-  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.08);
+  border-color: #1a73e8; background: #f8fbff;
+  box-shadow: 0 2px 12px rgba(26,115,232,0.08);
   transform: translateY(-1px);
 }
 .faq-item-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
@@ -220,5 +278,6 @@ function handleImageError(e) {
 @media (max-width: 768px) {
   .specs-grid { grid-template-columns: 120px 1fr; }
   .product-title { font-size: 22px; }
+  .features-list { grid-template-columns: 1fr; }
 }
 </style>

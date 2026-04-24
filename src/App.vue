@@ -1,5 +1,6 @@
 <template>
-  <div class="app-wrapper">
+  <!-- 管理后台布局 -->
+  <div class="app-wrapper" v-if="isHelpRoute === false">
     <div class="sidebar" :class="{ 'is-collapsed': collapsed }">
       <div class="sidebar-header">
         <div class="logo" v-show="!collapsed">
@@ -22,7 +23,10 @@
         <el-menu-item index="/statistics"><el-icon><DataAnalysis /></el-icon><template #title>数据统计</template></el-menu-item>
       </el-menu>
       <div class="sidebar-footer" v-show="!collapsed">
-        <span style="font-size:11px;color:rgba(255,255,255,0.4)">© AtomStack 2026</span>
+        <el-button text size="small" style="color:rgba(255,255,255,0.5);padding:0" @click="$router.push('/help')">
+          <el-icon><View /></el-icon> 帮助中心入口
+        </el-button>
+        <span style="font-size:11px;color:rgba(255,255,255,0.3)">© AtomStack 2026</span>
       </div>
     </div>
     <div class="main-container">
@@ -51,15 +55,19 @@
       <template #footer><el-button @click="showImport=false;importFile=null">取消</el-button><el-button type="primary" :disabled="!importFile" @click="doImport">确认导入</el-button></template>
     </el-dialog>
   </div>
+
+  <!-- 客户端布局（帮助中心公开页面）-->
+  <router-view v-else />
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, watchEffect } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { HomeFilled, Monitor, Document, Search, Star, Folder, PriceTag, DataAnalysis, Upload, Download, Delete, DArrowLeft, DArrowRight, UploadFilled } from '@element-plus/icons-vue'
+import { HomeFilled, Monitor, Document, Search, Star, Folder, PriceTag, DataAnalysis, Upload, Download, Delete, DArrowLeft, DArrowRight, UploadFilled, View } from '@element-plus/icons-vue'
 import { useFaqStore } from './stores/faq'
 import { useMachineStore } from './stores/machine'
+import { initSampleData } from './data/sampleData'
 
 const router = useRouter()
 const route = useRoute()
@@ -69,6 +77,18 @@ const collapsed = ref(false)
 const globalSearch = ref('')
 const showImport = ref(false)
 const importFile = ref(null)
+
+// 每次路由变化都确保数据已初始化（应对直接访问任意页面的场景）
+watchEffect(() => {
+  // 访问 route.path 建立依赖，路由变化时重新执行
+  void route.path
+  initSampleData(machineStore, faqStore)
+})
+
+// 判断是否为帮助中心路由
+const isHelpRoute = computed(() => {
+  return route.path.startsWith('/help')
+})
 
 function doSearch() {
   if (!globalSearch.value.trim()) return
@@ -83,9 +103,14 @@ function doImport() {
       const d = JSON.parse(e.target.result)
       let c = 0
       if (d.machines) { d.machines.forEach(m => machineStore.addMachine(m, true)); c += d.machines.length }
-      if (d.faqs) { d.faqs.forEach(f => faqStore.addFaq(f, true)); c += d.faqs.length }
       if (d.categories) { d.categories.forEach(cat => machineStore.addCategory(cat, true)) }
       if (d.tags) { d.tags.forEach(t => faqStore.addTag(t, true)) }
+      if (d.faqs) { d.faqs.forEach(f => faqStore.addFaq(f, true)); c += d.faqs.length }
+      // 批量更新后才计算标签使用计数，避免每条 FAQ 都触发一次
+      faqStore.batchUpdateTagUsage()
+      // 持久化机型和机器数据
+      if (d.machines) { try { localStorage.setItem('faq-machines', JSON.stringify(machineStore.machines)) } catch {} }
+      if (d.faqs) { try { localStorage.setItem('faq-list', JSON.stringify(faqStore.faqs)) } catch {} }
       ElMessage.success(`导入 ${c} 条数据`)
       showImport.value = false; importFile.value = null
     } catch { ElMessage.error('JSON 格式错误') }
@@ -111,6 +136,7 @@ async function clearAll() {
   localStorage.removeItem('faq-tags')
   localStorage.removeItem('faq-favorites')
   localStorage.removeItem('faq-history')
+  localStorage.removeItem('faq-data-version')
   location.reload()
 }
 </script>
@@ -133,7 +159,7 @@ async function clearAll() {
 .sidebar-menu .el-menu-item { color: rgba(255,255,255,0.65); height: 48px; line-height: 48px; margin: 2px 8px; border-radius: 8px; }
 .sidebar-menu .el-menu-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
 .sidebar-menu .el-menu-item.is-active { background: rgba(64,158,255,0.2); color: #409eff; }
-.sidebar-footer { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.06); text-align: center; }
+.sidebar-footer { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.06); text-align: center; display: flex; flex-direction: column; gap: 4px; }
 .main-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 .header { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: #fff; border-bottom: 1px solid #e4e7ed; box-shadow: 0 1px 4px rgba(0,0,0,0.04); z-index: 10; }
 .header-right { display: flex; align-items: center; gap: 10px; }

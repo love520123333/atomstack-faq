@@ -34,13 +34,20 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Edit, MoreFilled, Search } from '@element-plus/icons-vue'
 import { useFaqStore } from '../stores/faq'
+import { useMachineStore } from '../stores/machine'
+import { initSampleData } from '../data/sampleData'
 
 const faqStore = useFaqStore()
+const machineStore = useMachineStore()
 const sortedTags = computed(() => [...faqStore.tags].sort((a, b) => b.usageCount - a.usageCount))
+
+onMounted(() => {
+  initSampleData(machineStore, faqStore)
+})
 
 const dialogVisible = ref(false)
 const editing = ref(null)

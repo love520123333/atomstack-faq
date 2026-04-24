@@ -36,17 +36,22 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ArrowLeft, Search, View } from '@element-plus/icons-vue'
 import { useFaqStore } from '../stores/faq'
 import { useMachineStore } from '../stores/machine'
 import { getPriorityColor, getPriorityText } from '../utils'
+import { initSampleData } from '../data/sampleData'
 
 const route = useRoute()
 const faqStore = useFaqStore()
 const machineStore = useMachineStore()
 const searchText = ref('')
+
+onMounted(() => {
+  initSampleData(machineStore, faqStore)
+})
 
 const tag = computed(() => faqStore.getTag(route.params.id))
 const relatedFaqs = computed(() => faqStore.faqs.filter(f => f.tags && f.tags.includes(route.params.id)).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)))

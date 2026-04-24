@@ -27,13 +27,19 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import { Star, StarFilled } from '@element-plus/icons-vue'
 import { useFaqStore } from '../stores/faq'
 import { useMachineStore } from '../stores/machine'
 import { formatDate, getPriorityColor, getPriorityText, truncate } from '../utils'
+import { initSampleData } from '../data/sampleData'
 
 const faqStore = useFaqStore()
 const machineStore = useMachineStore()
+
+onMounted(() => {
+  initSampleData(machineStore, faqStore)
+})
 </script>
 
 <style scoped>

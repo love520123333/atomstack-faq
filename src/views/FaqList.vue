@@ -74,6 +74,11 @@
           </div>
           <p class="faq-card-summary" v-if="!filterMachine && row.summary">{{ truncate(row.summary, 80) }}</p>
         </div>
+        <!-- 操作按钮 -->
+        <div class="faq-card-actions" @click.stop>
+          <el-tooltip content="编辑"><el-button text size="small" :icon="EditPen" @click.stop="$router.push(`/faq/${row.id}/edit`)" /></el-tooltip>
+          <el-tooltip content="删除"><el-button text size="small" :icon="Delete" type="danger" @click.stop="handleDelete(row)" /></el-tooltip>
+        </div>
         <el-icon class="faq-card-arrow"><ArrowRight /></el-icon>
       </div>
     </div>
@@ -87,13 +92,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Edit, Delete, Document, View, Top, ArrowRight } from '@element-plus/icons-vue'
+import { Plus, Search, Document, View, Top, ArrowRight, EditPen, Delete } from '@element-plus/icons-vue'
 import { useFaqStore } from '../stores/faq'
 import { useMachineStore } from '../stores/machine'
 import { formatDate, getPriorityColor, getPriorityText, truncate } from '../utils'
+import { initSampleData } from '../data/sampleData'
 
 const route = useRoute()
 const router = useRouter()
@@ -109,13 +115,16 @@ const sortBy = ref('newest')
 const searchText = ref('')
 const currentPage = ref(1)
 const pageSize = 20
+const hasFilter = ref(false)
 
 // 从 URL query 读取初始筛选条件
 onMounted(() => {
+  initSampleData(machineStore, faqStore)
   if (route.query.machine) filterMachine.value = route.query.machine
   if (route.query.category) filterCategory.value = route.query.category
   if (route.query.tag) filterTag.value = route.query.tag
-  doFilter()
+  if (route.query.sortBy) sortBy.value = route.query.sortBy
+  hasFilter.value = !!(filterMachine.value || filterCategory.value || filterTag.value)
 })
 
 const selectedMachine = computed(() => machineStore.getMachine(filterMachine.value))
@@ -125,7 +134,7 @@ function doFilter() {
 }
 
 const filteredData = computed(() => {
-  let result = faqStore.faqs
+  let result = faqStore.faqs.slice() // 始终显示
   if (filterMachine.value) result = result.filter(f => f.machineId === filterMachine.value)
   if (filterCategory.value) {
     const mids = machineStore.machines.filter(m => m.categoryId === filterCategory.value).map(m => m.id)
@@ -160,26 +169,29 @@ async function handleDelete(row) {
 <style scoped>
 .machine-hint {
   display: flex; align-items: center; gap: 12px; padding: 12px 16px;
-  background: linear-gradient(135deg, #ecf5ff 0%, #f0f7ff 100%);
-  border-radius: 10px; margin-bottom: 12px; font-size: 14px; color: #606266;
+  background: linear-gradient(135deg, #e8f0fe 0%, #f0f7ff 100%);
+  border-radius: 12px; margin-bottom: 12px; font-size: 14px; color: #444;
 }
 
-.faq-card-list { display: flex; flex-direction: column; gap: 8px; }
+.faq-card-list { display: flex; flex-direction: column; gap: 10px; }
 .faq-card {
   display: flex; align-items: center; gap: 16px;
-  padding: 14px 20px; border: 1px solid #e5e6eb; border-radius: 10px;
-  cursor: pointer; transition: all 0.2s;
+  padding: 16px 20px; border: 1px solid #f0f0f0; border-radius: 12px;
+  cursor: pointer; transition: all 0.25s; background: #fff;
 }
 .faq-card:hover {
-  border-color: #409eff; background: #f0f7ff;
-  box-shadow: 0 2px 12px rgba(64,158,255,0.08);
+  border-color: #1a73e8; background: #f8fbff;
+  box-shadow: 0 4px 16px rgba(26,115,232,0.08);
+  transform: translateY(-1px);
 }
 .faq-card-left { flex: 1; min-width: 0; }
 .faq-card-right { flex-shrink: 0; text-align: right; min-width: 140px; }
-.faq-card-title { font-size: 14px; font-weight: 600; color: #1d2129; margin: 6px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.faq-card-tags { display: flex; flex-wrap: wrap; gap: 2px; }
-.faq-card-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #86909c; margin-bottom: 4px; flex-wrap: wrap; justify-content: flex-end; }
-.faq-card-summary { font-size: 12px; color: #c0c4cc; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
-.faq-card-arrow { color: #c0c4cc; transition: all 0.2s; flex-shrink: 0; }
-.faq-card:hover .faq-card-arrow { color: #409eff; transform: translateX(4px); }
+.faq-card-title { font-size: 15px; font-weight: 600; color: #1a1a2e; margin: 6px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.faq-card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.faq-card-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #aaa; margin-bottom: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.faq-card-summary { font-size: 12px; color: #ccc; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+.faq-card-arrow { color: #ddd; transition: all 0.25s; flex-shrink: 0; }
+.faq-card:hover .faq-card-arrow { color: #1a73e8; transform: translateX(4px); }
+.faq-card-actions { display: none; align-items: center; gap: 2px; flex-shrink: 0; }
+.faq-card:hover .faq-card-actions { display: flex; }
 </style>

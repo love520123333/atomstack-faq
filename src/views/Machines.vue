@@ -20,8 +20,14 @@
       <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="machine in filteredMachines" :key="machine.id">
         <el-card shadow="hover" class="machine-card" :body-style="{ padding: '0' }" @click="$router.push(`/machines/${machine.id}`)">
           <!-- 卡片图片 -->
-          <div class="card-image-wrap" v-if="machine.image">
-            <img :src="machine.image" :alt="machine.name" class="card-image" @error="$event.target.style.display='none'" loading="lazy" />
+          <div class="card-image-wrap">
+            <img :src="machine.image" :alt="machine.name" class="card-image" loading="lazy" @error="handleImgError($event, machine.id)" />
+            <div class="card-image-fallback" v-if="imgFailed[machine.id]">
+              <div class="fallback-inner">
+                <span class="fallback-letter">{{ machine.name.charAt(0) }}</span>
+                <span class="fallback-name">{{ machine.name }}</span>
+              </div>
+            </div>
           </div>
           <div class="card-body">
             <div class="machine-card-header">
@@ -41,19 +47,8 @@
             <h3 class="machine-name">{{ machine.name }}</h3>
             <p class="machine-model" v-if="machine.model">{{ machine.model }}</p>
             <p class="machine-desc">{{ (machine.description || '暂无描述').substring(0, 50) }}{{ (machine.description || '').length > 50 ? '...' : '' }}</p>
-            <div class="machine-specs" v-if="machine.specs">
-              <div v-for="(v, k) in getDisplaySpecs(machine.specs)" :key="k" class="spec-item">
-                <span class="spec-label">{{ k }}</span><span class="spec-value">{{ v }}</span>
-              </div>
-              <div v-if="expandedMachines[machine.id]" v-for="(v, k) in getMoreSpecs(machine.specs)" :key="'m-'+k" class="spec-item">
-                <span class="spec-label">{{ k }}</span><span class="spec-value">{{ v }}</span>
-              </div>
-              <div v-if="Object.keys(machine.specs).length > 4" class="spec-toggle" @click.stop="toggleExpand(machine.id)">
-                {{ expandedMachines[machine.id] ? '收起 ▲' : `全部 ${Object.keys(machine.specs).length} 项参数 ▼` }}
-              </div>
-            </div>
             <div class="machine-footer">
-              <el-tag size="small" type="info">{{ faqStore.getFaqsByMachine(machine.id).length }} 条 FAQ</el-tag>
+              <el-tag size="small" type="info">{{ faqCountMap[machine.id] || 0 }} 条 FAQ</el-tag>
               <el-icon class="arrow-icon"><ArrowRight /></el-icon>
             </div>
           </div>
@@ -74,6 +69,9 @@
           <el-col :span="12">
             <el-form-item label="产品图片URL">
               <el-input v-model="form.image" placeholder="https://..." />
+              <div v-if="form.image" style="margin-top:8px;text-align:center">
+                <img :src="form.image" style="max-height:80px;max-width:100%;border-radius:8px;border:1px solid #eee" @error="$event.target.style.display='none'" />
+              </div>
             </el-form-item>
           </el-col>
         </el-row>
@@ -111,7 +109,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Edit, Delete, MoreFilled, View, ArrowRight } from '@element-plus/icons-vue'
 import { useMachineStore } from '../stores/machine'
@@ -121,32 +119,29 @@ import { initSampleData } from '../data/sampleData'
 const machineStore = useMachineStore()
 const faqStore = useFaqStore()
 
+const filterCategory = ref('')
+const filterText = ref('')
+const currentPage = ref(1)
+
+// 图片加载失败追踪
+const imgFailed = reactive({})
+
 onMounted(() => {
   initSampleData(machineStore, faqStore)
 })
 
-const filterCategory = ref('')
-const filterText = ref('')
-const currentPage = ref(1)
-const expandedMachines = ref({})
-
-// 核心规格字段（卡片默认显示）
-const coreSpecKeys = ['激光功率', '激光类型', '激光光源', '工作区域', '雕刻精度', '最大速度', '主轴转速']
-
-function getDisplaySpecs(specs) {
-  const entries = Object.entries(specs || {})
-  if (expandedMachines.value['all'] || Object.keys(specs || {}).length <= 4) return entries
-  return entries.filter(([k]) => coreSpecKeys.includes(k)).slice(0, 4)
+function handleImgError(e, machineId) {
+  imgFailed[machineId] = true
 }
 
-function getMoreSpecs(specs) {
-  const entries = Object.entries(specs || {})
-  return entries.filter(([k]) => !coreSpecKeys.includes(k))
-}
-
-function toggleExpand(id) {
-  expandedMachines.value[id] = !expandedMachines.value[id]
-}
+// FAQ 计数缓存（避免每次渲染都遍历全部 FAQ）
+const faqCountMap = computed(() => {
+  const map = {}
+  for (const faq of faqStore.faqs) {
+    map[faq.machineId] = (map[faq.machineId] || 0) + 1
+  }
+  return map
+})
 
 const filteredMachines = computed(() => {
   let list = machineStore.machines
@@ -192,8 +187,8 @@ function handleSave() {
 }
 
 async function handleDelete(machine) {
-  const faqCount = faqStore.getFaqsByMachine(machine.id).length
-  const msg = faqCount > 0 ? `该机型下有 ${faqCount} 条 FAQ，删除后 FAQ 将变为无机型状态，确定删除？` : `确定删除机型「${machine.name}」？`
+  const count = faqCountMap.value[machine.id] || 0
+  const msg = count > 0 ? `该机型下有 ${count} 条 FAQ，删除后 FAQ 将变为无机型状态，确定删除？` : `确定删除机型「${machine.name}」？`
   await ElMessageBox.confirm(msg, '删除确认', { type: 'warning' })
   machineStore.deleteMachine(machine.id)
   ElMessage.success('删除成功')
@@ -204,21 +199,40 @@ async function handleDelete(machine) {
 .filter-bar { margin-bottom: 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 
 .machine-card {
-  margin-bottom: 16px; transition: all 0.3s; cursor: pointer;
+  margin-bottom: 16px;
   overflow: hidden; border-radius: 12px;
+  cursor: pointer;
+  /* 移除 transition: transform，减少 GPU 重绘 */
 }
 .machine-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }
 .card-image-wrap {
-  height: 160px; background: linear-gradient(135deg, #f0f2f5 0%, #e4e7ed 100%);
+  height: 150px; background: #f5f7fa;
   display: flex; align-items: center; justify-content: center; overflow: hidden;
+  position: relative;
 }
 .card-image {
-  max-width: 100%; max-height: 160px; object-fit: contain; transition: transform 0.3s;
+  width: 100%; height: 100%; object-fit: cover;
+  position: absolute; top: 0; left: 0;
+  background: transparent;
 }
-.machine-card:hover .card-image { transform: scale(1.05); }
+.card-image-fallback {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1;
+  background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+}
+.fallback-inner {
+  text-align: center; color: rgba(255,255,255,0.9);
+}
+.fallback-letter {
+  display: block; font-size: 32px; font-weight: 900; margin-bottom: 4px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.fallback-name {
+  font-size: 11px; opacity: 0.7; letter-spacing: 0.5px;
+}
 
 .card-body { padding: 14px 16px; }
 .machine-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
@@ -226,23 +240,10 @@ async function handleDelete(machine) {
 .machine-model { font-size: 11px; color: #86909c; margin: 0 0 4px; }
 .machine-desc { font-size: 12px; color: #86909c; margin: 6px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; }
 
-.machine-specs {
-  background: linear-gradient(135deg, #f7f8fa 0%, #f0f2f5 100%);
-  border-radius: 8px; padding: 8px 10px; margin: 8px 0;
-}
-.spec-item { display: flex; justify-content: space-between; font-size: 11px; padding: 2px 0; }
-.spec-label { color: #86909c; white-space: nowrap; margin-right: 8px; }
-.spec-value { color: #1d2129; font-weight: 500; text-align: right; }
-.spec-toggle {
-  text-align: center; font-size: 11px; color: #409eff; cursor: pointer;
-  padding: 4px 0 0; border-top: 1px dashed #e5e6eb; margin-top: 4px;
-}
-.spec-toggle:hover { text-decoration: underline; }
-
 .machine-footer {
   display: flex; justify-content: space-between; align-items: center;
   padding-top: 8px; border-top: 1px solid #f2f3f5; margin-top: 8px;
 }
-.arrow-icon { color: #c0c4cc; transition: all 0.2s; }
-.machine-card:hover .arrow-icon { color: #409eff; transform: translateX(4px); }
+.arrow-icon { color: #c0c4cc; }
+.machine-card:hover .arrow-icon { color: #409eff; }
 </style>

@@ -82,14 +82,19 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFaqStore } from '../stores/faq'
 import { useMachineStore } from '../stores/machine'
+import { initSampleData } from '../data/sampleData'
 
 const router = useRouter()
 const faqStore = useFaqStore()
 const machineStore = useMachineStore()
+
+onMounted(() => {
+  initSampleData(machineStore, faqStore)
+})
 
 const stats = computed(() => [
   { label: 'FAQ 总数', value: faqStore.faqCount, color: '#409eff', action: () => router.push('/faq') },

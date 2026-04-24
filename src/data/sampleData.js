@@ -1,102 +1,215 @@
 // AtomStack FAQ 管理系统 - 完整产品数据（自动生成）
 // 包含全线产品机型详细信息和 FAQ
 
-export const DATA_VERSION = '2026-04-23-v2'
+export const DATA_VERSION = '2026-04-24-v2'
+
+// 内存标志：记录当前运行时是否已初始化完成，避免每次 watchEffect 都走 localStorage
+let _runtimeInitialized = false
 
 export function initSampleData(machineStore, faqStore) {
+  // 快速路径：当前运行时已完成初始化（数据在内存中有效）
+  if (_runtimeInitialized && machineStore.machines.length > 0 && faqStore.faqs.length > 0) {
+    return
+  }
+
   // 版本号检查：如果本地数据版本与当前版本不一致，清除旧数据重新加载
   const storedVersion = localStorage.getItem('faq-data-version')
+
+  if (storedVersion === DATA_VERSION && machineStore.machines.length > 0 && faqStore.faqs.length > 0) {
+    _runtimeInitialized = true
+    return // 数据已是最新且不为空，无需重新加载
+  }
+
   if (storedVersion !== DATA_VERSION) {
+    // 版本不一致，清除所有旧缓存
     localStorage.removeItem('faq-machines')
     localStorage.removeItem('faq-list')
     localStorage.removeItem('faq-categories')
     localStorage.removeItem('faq-tags')
     localStorage.removeItem('faq-favorites')
     localStorage.removeItem('faq-history')
-    // 重置 store 中的响应式数据
     machineStore.machines.splice(0)
+    machineStore.categories.splice(0)
     faqStore.faqs.splice(0)
+    faqStore.tags.splice(0)
     faqStore.favorites.splice(0)
     faqStore.viewHistory.splice(0)
     localStorage.setItem('faq-data-version', DATA_VERSION)
   }
+
+  // 如果 store 里已有数据（从 localStorage 加载），不再重复加载
+  if (machineStore.machines.length > 0 && faqStore.faqs.length > 0) {
+    _runtimeInitialized = true
+    return
+  }
+
   const now = new Date().toISOString()
 
   // ===== 机型数据 =====
   const machines = [
-        { id: 'm-a5pro', name: 'A5 Pro', categoryId: 'cat-1', model: 'A5 Pro', image: 'https://atomstack.com/cdn/shop/files/A5_Pro_1.png?v=1718626577',
+        { id: 'm-a5pro', name: 'A5 Pro', categoryId: 'cat-1', model: 'A5 Pro', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/products/3.jpg?v=1712140273',
           description: 'AtomStack 经典入门级半导体激光雕刻机，搭载 5-5.5W 超细压缩光斑激光模块，固定焦点设计无需手动调焦。410×400mm 工作区域满足大多数 DIY 创作需求。',
+          features: [
+            { name: '固定焦点', desc: '免调焦设计，开箱即用，新手友好' },
+            { name: '超细光斑', desc: '0.2mm² 聚焦光斑，雕刻精度达 0.01mm' },
+            { name: '410×400mm 工作区', desc: '大工作区域，满足大多数创作需求' },
+            { name: 'USB 连接', desc: '即插即用，兼容 Windows 和 macOS' },
+            { name: '双软件支持', desc: 'LaserGRBL（免费）+ LightBurn（专业）' }
+          ],
           specs: { '激光类型': '半导体蓝光 455±5nm', '激光功率': '5-5.5W（光学功率）', '电功率': '40W', '工作区域': '410×400mm', '雕刻精度': '0.01mm', '光斑面积': '0.2mm²', '对焦方式': '固定焦点（免调焦）', '数据传输': 'USB', '支持软件': 'LaserGRBL、LightBurn', '支持系统': 'Windows、macOS', '文件格式': 'NC、BMP、JPG、PNG、DXF', '雕刻材料': '木材、竹子、纸板、塑料、皮革、PCB、涂层金属、陶瓷', '切割材料': '纸板、薄木片、黑色亚克力', '机器尺寸': '570×600×270mm', '净重': '3.4kg', '安全防护': '内置激光保护罩', '适配配件': 'R8/R6 旋转轴、F30/F60 空气辅助、H1/H5 高底座、F4N 蜂窝板', '产品定位': '入门级', '认证': 'CE、FCC、RoHS' } },
-        { id: 'm-a6pro', name: 'A6 Pro', categoryId: 'cat-1', model: 'A6 Pro', image: 'https://atomstack.com/cdn/shop/files/A6_Pro_1.png?v=1718626577',
+        { id: 'm-a6pro', name: 'A6 Pro', categoryId: 'cat-1', model: 'A6 Pro', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/cf9297a0e939385ac9804f0d61d54fc6_2c9b6c37-24c0-45ab-a94e-9c8da33b26ac.jpg?v=1694591195',
           description: 'AtomStack 便携式折叠激光雕刻机，创新折叠机身设计，收纳后体积小巧便于携带。260×250mm 工作区域。',
+          features: [
+            { name: '折叠便携', desc: '创新折叠机身，收纳后体积缩小 60%' },
+            { name: '轻量化', desc: '约 2.5kg，随身携带无负担' },
+            { name: '多软件支持', desc: 'LaserGRBL + LightBurn + AtomStack Studio' },
+            { name: '多配件适配', desc: '支持 R6 旋转轴、F30 空气辅助' }
+          ],
           specs: { '激光类型': '半导体蓝光 455nm', '激光功率': '5.5W', '工作区域': '260×250mm', '雕刻精度': '0.01mm', '对焦方式': '手动对焦', '数据传输': 'USB', '支持软件': 'LaserGRBL、LightBurn、AtomStack Studio', '支持系统': 'Windows、macOS', '雕刻材料': '木材、竹子、纸张、皮革、塑料', '净重': '约2.5kg', '特色功能': '折叠便携、轻量化', '适配配件': 'R6 旋转轴、F30 空气辅助', '产品定位': '便携入门级', '认证': 'CE、FCC、RoHS' } },
-        { id: 'm-a10prov2', name: 'A10 Pro V2', categoryId: 'cat-1', model: 'A10 Pro V2', image: 'https://atomstack.com/cdn/shop/files/A10_Pro_V2_1.png?v=1718626577',
+        { id: 'm-a10prov2', name: 'A10 Pro V2', categoryId: 'cat-1', model: 'A10 Pro V2', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/A10_Pro_V2_88754d5a-06d7-43da-8c65-aba7fce25bd9.jpg?v=1750928430',
           description: 'AtomStack 中端激光雕刻机，10W 双激光耦合技术，410×400mm 工作区域，最大速度 10000mm/min。支持自动对焦、断电续雕、WiFi 连接。',
+          features: [
+            { name: '双激光耦合', desc: '10W 光学功率，2 路激光叠加提升能量密度' },
+            { name: 'WiFi 连接', desc: '支持无线传输，手机/平板远程控制' },
+            { name: '自动对焦', desc: '一键自动测量焦距，无需手动调节' },
+            { name: '断电续雕', desc: '意外断电后可从断点继续雕刻' },
+            { name: '高速雕刻', desc: '最高 10000mm/min，大幅提升工作效率' },
+            { name: '多平台支持', desc: 'Windows / macOS / iOS / Android 全覆盖' }
+          ],
           specs: { '激光类型': '半导体蓝光 455nm', '激光功率': '10W（双激光耦合）', '工作区域': '410×400mm', '雕刻精度': '0.01mm', '光斑大小': '0.08×0.08mm', '最大速度': '10000mm/min', '对焦方式': '自动对焦/手动对焦', '数据传输': 'USB、WiFi、热点', '支持软件': 'AtomStack Studio、LaserGRBL、LightBurn', '支持系统': 'Windows、macOS、iOS、Android', '切割能力': '3mm胶合板一次切透、5mm黑色亚克力', '安全防护': '防蓝光护目镜、磁性滤光罩', '适配配件': 'R8/R6 旋转轴、F60/F80 空气辅助、H1 高底座、F4N 蜂窝板', '产品定位': '中端性价比款', '认证': 'CE、FCC、RoHS、FDA' } },
-        { id: 'm-a12pro', name: 'A12 Pro', categoryId: 'cat-1', model: 'A12 Pro', image: 'https://atomstack.com/cdn/shop/files/A12_Pro_1.png?v=1718626577',
+        { id: 'm-a12pro', name: 'A12 Pro', categoryId: 'cat-1', model: 'A12 Pro', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/A12Pro_9ebba50d-7a87-4feb-a733-76af9db5bd07.png?v=1729683409',
           description: 'AtomStack 中高端激光雕刻机，12W 半导体激光模块，线性导轨 X 轴设计。410×400mm 工作区域，10000mm/min 高速雕刻。',
+          features: [
+            { name: '线性导轨 X 轴', desc: '工业级线性导轨，精度更高、寿命更长' },
+            { name: '12W 激光功率', desc: '5mm 胶合板一次切透，8mm 黑色亚克力' },
+            { name: '火焰检测', desc: '内置火焰传感器，检测到明火自动停止' },
+            { name: '高速雕刻', desc: '10000mm/min 极速运行' },
+            { name: '双激光耦合', desc: '两路激光束汇聚，提升雕刻切割效率' }
+          ],
           specs: { '激光类型': '半导体蓝光 455nm', '激光功率': '12W', '工作区域': '410×400mm', '雕刻精度': '0.01mm', '最大速度': '10000mm/min', '导轨类型': '线性导轨X轴', '特色功能': '线性导轨、火焰检测、双激光耦合', '支持软件': 'AtomStack Studio、LaserGRBL、LightBurn', '切割能力': '5mm胶合板一次切透、8mm黑色亚克力', '适配配件': 'R8/R6 旋转轴、F60/F80 空气辅助、F4N 蜂窝板', '产品定位': '中高端精度款', '认证': 'CE、FCC、RoHS' } },
-        { id: 'm-a20prov2', name: 'A20 Pro V2', categoryId: 'cat-1', model: 'A20 Pro V2', image: 'https://atomstack.com/cdn/shop/files/A20_Pro_V2_1.png?v=1718626577',
+        { id: 'm-a20prov2', name: 'A20 Pro V2', categoryId: 'cat-1', model: 'A20 Pro V2', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/A20_Pro_V2_494d61a2-01fc-46b9-b0c7-633a2475ac70.jpg?v=1750928243',
           description: 'AtomStack 高功率激光雕刻机，20W 光学功率，400×365mm 工作区域。自动对焦、空气辅助接口、自动十字定位、限位开关、离线雕刻。',
+          features: [
+            { name: '20W 高功率', desc: '15mm 木板一次切透，10mm 黑色亚克力' },
+            { name: '自动十字定位', desc: '激光自动定位工作区域原点' },
+            { name: '空气辅助接口', desc: '标配空气辅助接口，切割更干净' },
+            { name: '限位开关', desc: 'X/Y 轴限位开关，防止越界' },
+            { name: '离线雕刻', desc: '断开电脑后仍可从 TF 卡执行任务' },
+            { name: '自动对焦', desc: '一键自动对焦，适配不同厚度材料' }
+          ],
           specs: { '激光类型': '半导体蓝光 455nm', '激光功率': '20W（光学功率）', '电功率': '120W', '工作区域': '400×365mm', '雕刻精度': '0.01mm', '最大速度': '10000mm/min', '对焦方式': '自动对焦', '特色功能': '空气辅助、自动十字定位、限位开关、离线雕刻', '支持软件': 'AtomStack Studio、LaserGRBL、LightBurn', '切割能力': '15mm木板一次切透、10mm黑色亚克力', '安全防护': '防护眼镜、限位开关', '适配配件': 'R8/R6 旋转轴、F80 空气辅助、F4N 蜂窝板', '产品定位': '高功率专业款', '认证': 'CE、FCC、RoHS' } },
-        { id: 'm-a70pro', name: 'A70 Pro', categoryId: 'cat-2', model: 'A70 Pro', image: 'https://atomstack.com/cdn/shop/files/A70_Pro_1.png?v=1718626577',
+        { id: 'm-a70pro', name: 'A70 Pro', categoryId: 'cat-2', model: 'A70 Pro', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/A70Pro_0ab30994-9d5b-465c-be1c-5b18ce78e8c3.png?v=1751366709',
           description: 'AtomStack 工业级大功率激光雕刻机，70W/35W 双功率模式，850×700mm 工作区域。内置控制器、屏幕、空气辅助、火焰检测。',
+          features: [
+            { name: '70W/35W 双功率', desc: '一键切换高功率切割和低功率精细雕刻' },
+            { name: '内置控制器', desc: '无需连接电脑，脱机独立运行' },
+            { name: '内置屏幕', desc: '实时显示雕刻进度和参数' },
+            { name: '空气辅助', desc: '内置空气泵，吹除焦渣提升切割质量' },
+            { name: '火焰检测', desc: '红外火焰传感器，安全防护' },
+            { name: '超大工作区', desc: '850×700mm，满足大型工业加工需求' }
+          ],
           specs: { '激光类型': '半导体蓝光 455nm', '激光功率': '70W/35W 双功率', '工作区域': '850×700mm', '雕刻精度': '0.01mm', '最大速度': '6000mm/min', '特色功能': '内置控制器/屏幕、空气辅助、火焰检测、限位开关', '切割能力': '25mm木板、20mm亚克力、40mmMDF', '适配配件': 'R8 旋转轴、F80 空气辅助、D5 空气净化器、F4N 蜂窝板', '产品定位': '工业级大功率', '认证': 'CE、FCC、RoHS' } },
-        { id: 'm-a70max', name: 'A70 Max', categoryId: 'cat-2', model: 'A70 Max', image: 'https://atomstack.com/cdn/shop/files/A70_Max_1.png?v=1718626577',
+        { id: 'm-a70max', name: 'A70 Max', categoryId: 'cat-2', model: 'A70 Max', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/9_9eb5675d-690d-48cb-8a43-d70327148d5c.png?v=1751351225',
           description: 'AtomStack 超大工作区域大功率激光雕刻机，880×880mm 超大面积，70W/35W 双功率。适合大型广告标识、家具制造等工业场景。',
           specs: { '激光类型': '半导体蓝光 455nm', '激光功率': '70W/35W 双功率', '工作区域': '880×880mm', '最大速度': '6000mm/min', '特色功能': '超大工作区域、内置控制器', '产品定位': '工业级超大区域', '认证': 'CE、FCC、RoHS' } },
-        { id: 'm-ae85', name: 'AE85 扩展模块', categoryId: 'cat-2', model: 'AE85', image: 'https://atomstack.com/cdn/shop/files/AE85_1.png?v=1718626577',
+        { id: 'm-ae85', name: 'AE85 扩展模块', categoryId: 'cat-2', model: 'AE85', image: 'https://32921556.s21i.faiusr.com/4/ABUIABAEGAAgh5GOxgYoms_Q0gcwoAY4oAY.png',
           description: 'AtomStack Y 轴扩展模块，将 A70 Pro 工作区域从 850mm 扩展到 1060mm。包含加长导轨和同步带。',
           specs: { '类型': 'Y轴扩展模块', '扩展范围': '850mm → 1060mm', '适用机型': 'A70 Pro', '包含': '加长导轨、同步带、安装配件' } },
-        { id: 'm-kraft', name: 'Kraft', categoryId: 'cat-3', model: 'Kraft', image: 'https://atomstack.com/cdn/shop/files/Kraft_1.png?v=1718626577',
+        { id: 'm-kraft', name: 'Kraft', categoryId: 'cat-3', model: 'Kraft', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/K2_1.jpg?v=1750405440',
           description: 'AtomStack 封闭式双光源激光雕刻机，20W 蓝光 + 1.2W 红外。Class 1 安全认证，16MP 4K 摄像头，300×300mm 全封闭工作区。',
+          features: [
+            { name: '双光源', desc: '20W 蓝光雕刻切割 + 1.2W 红外金属打标' },
+            { name: 'Class 1 安全', desc: 'IEC 60825-1 认证，无需佩戴防护眼镜' },
+            { name: '16MP 4K 摄像头', desc: '实时预览、AI 智能识别材料' },
+            { name: '三模式切换', desc: '蓝光 / 红外 / 双光三种工作模式' },
+            { name: '全封闭设计', desc: '300×300mm 全封闭工作区，安全无忧' },
+            { name: '金属打标', desc: '金/银/铜/铁/铝/不锈钢全金属支持' }
+          ],
           specs: { '激光类型': '20W蓝光 + 1.2W红外双光源', '工作区域': '300×300mm', '安全等级': 'Class 1', '摄像头': '16MP 4K', '对焦方式': '自动对焦', '光源模式': '蓝光/红外/双光三模切换', '蓝光切割': '18mm木板、5mm亚克力、5mm皮革', '红外打标': '所有金属（金/银/铜/铁/铝/不锈钢）', '支持软件': 'AtomStack Studio、LightBurn', '适配配件': 'R6 旋转轴', '产品定位': '安全双光源旗舰', '认证': 'Class 1 IEC 60825-1' } },
-        { id: 'm-p1', name: 'P1', categoryId: 'cat-3', model: 'P1', image: 'https://atomstack.com/cdn/shop/files/P1_1.png?v=1718626577',
-          description: 'AtomStack Class 1 安全激光雕刻机，5W 蓝光 + 1.2W 红红外。USB 安全钥匙联锁、陀螺仪检测、110×110mm 工作区。教育/家用安全首选。',
+        { id: 'm-p1', name: 'P1', categoryId: 'cat-3', model: 'P1', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/5W_fadefb5e-27e7-49f0-b283-84faba9d3b3f.jpg?v=1740624205',
+          description: 'AtomStack Class 1 安全激光雕刻机，5W 蓝光 + 1.2W 红外。USB 安全钥匙联锁、陀螺仪检测、110×110mm 工作区。教育/家用安全首选。',
+          features: [
+            { name: 'USB 安全钥匙', desc: '插入钥匙才可开机，拔出即断激光' },
+            { name: '陀螺仪检测', desc: '设备被移动或倾斜时自动停止激光' },
+            { name: '开门断光', desc: '打开盖子立即停止激光输出' },
+            { name: 'Class 1 安全', desc: '通过 IEC 60825-1 认证，教育场景首选' },
+            { name: '双光源', desc: '5W 蓝光雕刻 + 1.2W 红外金属打标' },
+            { name: '小巧一体', desc: '110×110mm 工作区，桌面即可使用' }
+          ],
           specs: { '激光类型': '5W蓝光 + 1.2W红外', '工作区域': '110×110mm', '安全等级': 'Class 1', '安全功能': 'USB安全钥匙联锁、陀螺仪检测、开门断光', '对焦方式': '自动对焦', '蓝光切割': '3mm椴木板', '红外打标': '金属标记', '适配配件': '无（小巧一体）', '产品定位': '教育家用安全款' } },
-        { id: 'm-fusion', name: 'Fusion', categoryId: 'cat-3', model: 'Fusion', image: 'https://atomstack.com/cdn/shop/files/Fusion_1.png?v=1718626577',
+        { id: 'm-fusion', name: 'Fusion', categoryId: 'cat-3', model: 'Fusion', image: 'https://32921556.s21i.faiusr.com/4/ABUIABAEGAAgofO6yQYomIbOnwMwoAY4oAY.png',
           description: 'AtomStack 多功能双光源激光雕刻机，10W 蓝光 + 2W 红外。Class 1 安全认证，自动对焦，225×225mm 工作区。',
           specs: { '激光类型': '10W蓝光 + 2W红外', '工作区域': '225×225mm', '安全等级': 'Class 1', '对焦方式': '自动对焦', '蓝光切割': '10mm木板', '红外打标': '金属标记', '产品定位': '安全双光源中端' } },
-        { id: 'm-atelier', name: 'Atelier', categoryId: 'cat-3', model: 'Atelier', image: 'https://atomstack.com/cdn/shop/files/Atelier_1.png?v=1718626577',
+        { id: 'm-atelier', name: 'Atelier', categoryId: 'cat-3', model: 'Atelier', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/1_66cd84dd-565b-4cdb-98c1-82134fbe65e8.jpg?v=1758252624',
           description: 'AtomStack 振镜式红外激光打标机，2W 红外 1064nm，超高速振镜打标可达 10000mm/s。110×110mm 工作区，专精金属/塑料打标。',
           specs: { '激光类型': '振镜红外 1064nm', '激光功率': '2W', '工作区域': '110×110mm', '打标速度': '最高 10000mm/s', '特色功能': '超高速振镜、条码/二维码/序列号', '适用材料': '金属、塑料、深色材料', '产品定位': '专业金属打标' } },
-        { id: 'm-swift', name: 'Swift', categoryId: 'cat-3', model: 'Swift', image: 'https://atomstack.com/cdn/shop/files/Swift_1.png?v=1718626577',
+        { id: 'm-swift', name: 'Swift', categoryId: 'cat-3', model: 'Swift', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/Swift_-_-900x676.jpg?v=1768460513',
           description: 'AtomStack 便携激光雕刻机，5W 蓝光，160×160mm 工作区。超轻设计，适合 DIY 爱好者和教学场景。',
           specs: { '激光类型': '半导体蓝光 455nm', '激光功率': '5W', '工作区域': '160×160mm', '净重': '约1.8kg', '特色功能': '便携超轻', '产品定位': '便携 DIY' } },
-        { id: 'm-swiftmini', name: 'Swift Mini', categoryId: 'cat-3', model: 'Swift Mini', image: 'https://atomstack.com/cdn/shop/files/Swift_Mini_1.png?v=1718626577',
+        { id: 'm-swiftmini', name: 'Swift Mini', categoryId: 'cat-3', model: 'Swift Mini', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/2_ed9870c6-9362-4e70-874f-b00322b74ec0.jpg?v=1766027455',
           description: 'AtomStack 袖珍激光雕刻机，3W 蓝光，100×100mm 工作区。最小最轻，桌面级创作利器。',
           specs: { '激光类型': '半导体蓝光 455nm', '激光功率': '3W', '工作区域': '100×100mm', '净重': '约1.2kg', '特色功能': '袖珍最小', '产品定位': '袖珍入门' } },
-        { id: 'm-c4pro', name: 'C4 Pro', categoryId: 'cat-4', model: 'C4 Pro', image: 'https://atomstack.com/cdn/shop/files/C4_Pro_1.png?v=1718626577',
+        { id: 'm-c4pro', name: 'C4 Pro', categoryId: 'cat-4', model: 'C4 Pro', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/C4_PRO-1_1.jpg?v=1760495473',
           description: 'AtomStack 四轴 CNC 雕刻机，主轴转速 20000RPM，300×300×60mm 工作区。支持木材/亚克力/金属铣削。',
+          features: [
+            { name: '四轴加工', desc: 'X/Y/Z + 第四轴旋转，支持圆柱体雕刻' },
+            { name: '20000RPM 主轴', desc: '高速主轴，适合多种材料铣削' },
+            { name: '多材料支持', desc: '木材、亚克力、铝、铜、FRP 等均可加工' },
+            { name: '300×300mm 工作区', desc: '大工作台，适合中大型工件' }
+          ],
           specs: { '类型': '四轴CNC雕刻机', '主轴转速': '20000RPM', '工作区域': '300×300×60mm', '驱动': '步进电机', '支持材料': '木材、亚克力、铝、铜、FRP', '支持软件': 'Candle、Universal Gcode Sender', '产品定位': 'CNC 多材料铣削' } },
-        { id: 'm-hurricane', name: 'Hurricane K60', categoryId: 'cat-5', model: 'Hurricane K60', image: 'https://atomstack.com/cdn/shop/files/Hurricane_1.png?v=1718626577',
+        { id: 'm-hurricane', name: 'Hurricane K60', categoryId: 'cat-5', model: 'Hurricane K60', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/K60_1.jpg?v=1750405657',
           description: 'AtomStack CO₂ 激光切割机，55W CO₂ 激光，600×400mm 工作区。Class 1 安全认证，水冷系统，红点定位，3D浮雕。',
+          features: [
+            { name: 'CO₂ 激光', desc: '55W CO₂ 激光，20mm 透明亚克力一次切透' },
+            { name: 'Class 1 安全', desc: '全封闭安全认证，工业级防护' },
+            { name: '红点定位', desc: '红色激光指示器精确对位' },
+            { name: '3D 浮雕', desc: '支持灰度图 3D 立体浮雕雕刻' },
+            { name: '自动升降台', desc: 'Z 轴电动升降，自动对焦' },
+            { name: '水冷系统', desc: '内置水冷循环，稳定长效运行' }
+          ],
           specs: { '激光类型': 'CO₂ 10600nm', '激光功率': '55W（光学）', '工作区域': '600×400mm', '安全等级': 'Class 1', '冷却系统': '水冷', '切割能力': '20mm透明亚克力、18mm椴木板', '特色功能': '红点定位、3D浮雕、自动升降台、内置控制器', '产品定位': '专业 CO₂ 切割', '认证': 'Class 1' } },
-        { id: 'm-r8', name: 'R8 旋转卡盘', categoryId: 'cat-6', model: 'R8', image: 'https://atomstack.com/cdn/shop/files/R8_1.png?v=1718626577',
+        { id: 'm-r8', name: 'R8 旋转卡盘', categoryId: 'cat-6', model: 'R8', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/1_e017f0a9-0b8b-4282-b3f4-94d8aa8ac66e.png?v=1740624454',
           description: 'AtomStack 旋转卡盘套装，支持 10-120mm 直径圆柱体雕刻。步进电机驱动，适配 A 系列/A20/A70。',
           specs: { '类型': '旋转卡盘', '适用机型': 'A系列、A20系列、A70系列', '支持直径': '10-120mm', '驱动': '步进电机', '适用物体': '杯子、瓶子、笔筒、圆柱体' } },
-        { id: 'm-r6', name: 'R6 滚轴', categoryId: 'cat-6', model: 'R6', image: 'https://atomstack.com/cdn/shop/files/R6_1.png?v=1718626577',
+        { id: 'm-r6', name: 'R6 滚轴', categoryId: 'cat-6', model: 'R6', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/1_4acbd23c-03b5-49c1-9252-c6790746039d.png?v=1740624507',
           description: 'AtomStack 旋转滚轴套装，支持滚动雕刻长条材料。适配 A 系列/Kraft/P1/Fusion。',
           specs: { '类型': '旋转滚轴', '适用机型': 'A系列、Kraft、P1、Fusion', '适用材料': '布料、皮革、纸张等卷状材料' } },
-        { id: 'm-f80', name: 'F80 空气辅助', categoryId: 'cat-6', model: 'F80', image: 'https://atomstack.com/cdn/shop/files/F80_1.png?v=1718626577',
+        { id: 'm-f80', name: 'F80 空气辅助', categoryId: 'cat-6', model: 'F80', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/Z1.png?v=1750318089',
           description: 'AtomStack 双泵空气辅助系统，最大风量 80L/min。自动开关，可调风量。适配 A 系列/A20/A70。',
           specs: { '类型': '双泵空气辅助', '最大风量': '80L/min', '适用机型': 'A系列、A20系列、A70系列', '特色': '自动开关、可调风量' } },
-        { id: 'm-d5', name: 'D5 空气净化器', categoryId: 'cat-6', model: 'D5', image: 'https://atomstack.com/cdn/shop/files/D5_1.png?v=1718626577',
+        { id: 'm-d5', name: 'D5 空气净化器', categoryId: 'cat-6', model: 'D5', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/1_7584d13d-e6f9-48aa-8c1c-c7f4ac4b821f.png?v=1763012415',
           description: 'AtomStack 四层空气净化器：初效过滤 + HEPA + 活性炭 + UV杀菌。CADR 350m³/h，噪音 <55dB。',
           specs: { '类型': '空气净化器', '过滤系统': '初效+HEPA+活性炭+UV', 'CADR': '350m³/h', '噪音': '<55dB', '特色': 'UV杀菌、配合排烟管使用' } },
-        { id: 'm-f4n', name: 'F4N 蜂窝工作板', categoryId: 'cat-7', model: 'F4N', image: 'https://atomstack.com/cdn/shop/files/F4N_1.png?v=1718626577',
+        { id: 'm-f4n', name: 'F4N 蜂窝工作板', categoryId: 'cat-7', model: 'F4N', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/F4.png?v=1727599587',
           description: 'AtomStack 钢制蜂窝工作板，440×420mm，适配 A 系列和 A20 系列。支撑切割通风散热。',
           specs: { '类型': '蜂窝工作板', '尺寸': '440×420mm', '材质': '钢制蜂窝', '适用机型': 'A系列、A20系列' } },
-        { id: 'm-fb2', name: 'FB2 防护罩', categoryId: 'cat-7', model: 'FB2', image: 'https://atomstack.com/cdn/shop/files/FB2_1.png?v=1718626577',
+        { id: 'm-fb2', name: 'FB2 防护罩', categoryId: 'cat-7', model: 'FB2', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/FB2.png?v=1727599687',
           description: 'AtomStack 全封闭式激光防护罩，防火材料+防护视窗，配排烟接口。适配 A10/A12/A20。',
           specs: { '类型': '全封闭防护罩', '适用机型': 'A10 Pro V2、A12 Pro、A20 Pro V2', '材质': '防火材料+防护视窗', '特色': '排烟接口、快速折叠安装' } },
-        { id: 'm-h1', name: 'H1 高底座', categoryId: 'cat-7', model: 'H1', image: 'https://atomstack.com/cdn/shop/files/H1_1.png?v=1718626577',
+        { id: 'm-h1', name: 'H1 高底座', categoryId: 'cat-7', model: 'H1', image: 'https://cdn.shopify.com/s/files/1/0790/2586/4977/files/H1.png?v=1727599758',
           description: 'AtomStack 增高台，升高 60mm。适配 A 系列全系列，用于雕刻较高物体或配合旋转轴使用。',
           specs: { '类型': '增高台', '升高': '60mm', '适用机型': 'A系列全系列', '用途': '雕刻较高物体、配合旋转轴' } },
       ]
 
   machines.forEach(m => machineStore.addMachine(m, true))
   function save(key, data) { try { localStorage.setItem(key, JSON.stringify(data)) } catch {} }
+
+  // 确保默认分类存在（版本清除时分类可能被清空）
+  if (machineStore.categories.length === 0) {
+    const defaultCategories = [
+      { id: 'cat-1', name: 'A系列半导体雕刻机', icon: 'Cpu', color: '#409eff', description: 'A5 Pro, A6 Pro, A10 Pro V2, A12 Pro, A20 Pro V2 等' },
+      { id: 'cat-2', name: '大功率雕刻机', icon: 'Lightning', color: '#e6a23c', description: 'A70 Pro, A70 Max, AE85 等大功率工业级雕刻机' },
+      { id: 'cat-3', name: '创新系列', icon: 'MagicStick', color: '#67c23a', description: 'Kraft, P1, Fusion, Atelier, Swift, Swift Mini 等创新产品' },
+      { id: 'cat-4', name: 'CNC雕刻机', icon: 'SetUp', color: '#f56c6c', description: 'C4 Pro 四轴CNC雕刻机' },
+      { id: 'cat-5', name: 'CO₂激光雕刻机', icon: 'Sunny', color: '#b37feb', description: 'Hurricane (K60) 二氧化碳激光雕刻机' },
+      { id: 'cat-6', name: '拓展配件', icon: 'Box', color: '#909399', description: '旋转模块、传送带、空气净化器、空气辅助等' },
+      { id: 'cat-7', name: '防护与工作台', icon: 'Shield', color: '#36cfc9', description: '防护箱、蜂窝板、增高台等' }
+    ]
+    defaultCategories.forEach(cat => machineStore.addCategory(cat, true))
+    save('faq-categories', machineStore.categories)
+  }
+
   save('faq-machines', machineStore.machines)
 
   // ===== FAQ 数据 =====
@@ -113,7 +226,31 @@ export function initSampleData(machineStore, faqStore) {
     faq.ratingCount = Math.floor(Math.random() * 30) + 1
   })
   faqs.forEach(f => faqStore.addFaq(f, true))
+  // 确保默认标签存在（版本清除时标签可能被清空）
+  if (faqStore.tags.length === 0) {
+    const defaultTags = [
+      { id: 'tag-1', name: '激光不亮', color: '#f56c6c', usageCount: 0 },
+      { id: 'tag-2', name: '连接失败', color: '#409eff', usageCount: 0 },
+      { id: 'tag-3', name: '雕刻模糊', color: '#e6a23c', usageCount: 0 },
+      { id: 'tag-4', name: '切割不透', color: '#67c23a', usageCount: 0 },
+      { id: 'tag-5', name: '软件问题', color: '#909399', usageCount: 0 },
+      { id: 'tag-6', name: '焦点调节', color: '#b37feb', usageCount: 0 },
+      { id: 'tag-7', name: '运动异常', color: '#36cfc9', usageCount: 0 },
+      { id: 'tag-8', name: '限位开关', color: '#ff85c0', usageCount: 0 },
+      { id: 'tag-9', name: '空气辅助', color: '#ffc53d', usageCount: 0 },
+      { id: 'tag-10', name: '安全保护', color: '#ff4d4f', usageCount: 0 },
+      { id: 'tag-11', name: '旋转附件', color: '#73d13d', usageCount: 0 },
+      { id: 'tag-12', name: '固件升级', color: '#597ef7', usageCount: 0 },
+      { id: 'tag-13', name: '材质适配', color: '#9254de', usageCount: 0 },
+      { id: 'tag-14', name: '维护保养', color: '#ffa940', usageCount: 0 },
+      { id: 'tag-15', name: '配件更换', color: '#ff7a45', usageCount: 0 }
+    ]
+    defaultTags.forEach(tag => faqStore.addTag(tag, true))
+  }
+  // 批量添加完成后，一次性更新标签使用计数
+  faqStore.batchUpdateTagUsage()
   save('faq-list', faqStore.faqs)
+  _runtimeInitialized = true
 }
 
 function generateFaqs() {
@@ -13974,5 +14111,441 @@ function generateFaqs() {
       'F4N 激光雕刻（打标）布料和纺织品的参数',
       '步骤1：将布料平铺，用大头针或胶带固定防止移动。步骤2：设置较低功率（20~40%），较快速度（5000~8000mm/min）。步骤3：棉布选低功率浅雕（避免烧穿），合成纤维可用中功率。步骤4：先在废布上测试，找到恰好留下痕迹但不烧穿的参数。步骤5：雕刻完成后，可水洗测试图案的牢固性。',
       '激光雕刻布料会在局部融化或焦化纤维形成图案，图案不可水洗掉但不如烫印牢固，适合装饰性用途。'),
+
+    // ================ 通用高频 FAQ（不属于特定机型） ================
+    f('m-a10prov2', 'A10 Pro V2 首次使用快速入门指南', 'high',
+      ['tag-5', 'tag-7'],
+      'A10 Pro V2,快速入门,首次使用,安装',
+      '第一次收到 A10 Pro V2，不知道从哪里开始，需要了解完整的开箱到首次雕刻流程。',
+      '从开箱检查到首次雕刻，只需 6 步即可完成。',
+      `## 首次使用快速入门
+
+### 1. 开箱检查
+1. 打开包装，清点所有配件（激光模块、框架、传送带、电源、USB线、螺丝包、安全眼镜、说明书）
+2. 检查外观是否有运输损伤
+3. 确认螺丝、紧固件完整
+
+### 2. 组装机器
+1. 按照说明书逐步组装铝合金框架
+2. 安装 X/Y 轴传送带和滑块
+3. 安装激光模块到 X 轴滑块上
+4. 连接所有线缆（激光线、电机线、限位开关线）
+5. 插上电源线和 USB 数据线
+
+### 3. 安装软件
+1. 访问 AtomStack 官网下载最新驱动和软件
+2. 安装 CH340 USB 驱动（Windows 用户）
+3. 安装 LaserGRBL（免费）或 LightBurn（付费）
+4. 连接 USB，在设备管理器中确认 COM 口
+
+### 4. 对焦
+1. 将激光头移到工作区域中心
+2. 放置一块薄木板在激光头下方
+3. 轻轻转动激光头底部的对焦旋钮
+4. 当激光焦点最细最亮时停止转动
+
+### 5. 测试雕刻
+1. 在软件中导入一张简单的测试图案
+2. 设置参数：功率 30%，速度 1000mm/min
+3. 点击「开始」进行首次测试雕刻
+
+### 6. 查看效果并调整
+1. 观察雕刻深度和清晰度
+2. 根据效果调整功率和速度
+3. 不同材料需要不同参数，建议参考官方参数表`),
+
+    f('m-a5pro', '激光雕刻机常见安全问题有哪些？', 'critical',
+      ['tag-10', 'tag-5'],
+      '安全,防护,注意事项,激光安全',
+      '使用激光雕刻机时有哪些安全注意事项和风险需要了解？',
+      '激光雕刻机涉及高功率激光和运动部件，必须遵守安全规范。',
+      `## 安全注意事项
+
+### 激光安全
+1. **切勿直视激光束**，即使佩戴防护眼镜也不要故意观察
+2. 雕刻时不要将手或身体任何部位伸入工作区域
+3. 确保工作区域内没有反光材料（镜子、金属板等）
+4. 使用 Class 1 封闭式机器时，不要在运行中打开防护罩
+
+### 电气安全
+1. 使用带接地的电源插座
+2. 不要在潮湿环境中使用
+3. 不要自行拆卸或改装电源模块
+4. 长时间不用时拔掉电源线
+
+### 消防安全
+1. 不要在无人看管的情况下运行雕刻任务
+2. 准备灭火器（CO2 或干粉型），放在触手可及处
+3. 雕刻易燃材料时降低功率、增加速度
+4. 建议搭配空气净化器或排烟管使用
+
+### 通风安全
+1. 雕刻会产生烟雾和有害气体，确保通风良好
+2. 雕刻 PVC、ABS 等塑料会释放有毒气体，**不要雕刻这些材料**
+3. 使用空气净化器或排烟管将烟雾排出室外
+4. 密闭空间使用时务必保持空气流通`),
+
+    f('m-a20prov2', '如何选择适合的激光雕刻材料？', 'medium',
+      ['tag-13', 'tag-5'],
+      '材料选择,适合雕刻,材料推荐,新手',
+      '新手不知道哪些材料可以雕刻，哪些不能，如何选择合适的材料？',
+      '不同材料适合不同的雕刻/切割方式，以下是详细的材料指南。',
+      `## 常用材料推荐
+
+### 适合雕刻的材料
+| 材料 | 雕刻效果 | 推荐功率 | 备注 |
+|------|---------|---------|------|
+| 椴木板/胶合板 | 深色刻痕 | 30-60% | 最常用 |
+| 竹片/竹板 | 清晰纹理 | 30-50% | 天然美感 |
+| 纸板/卡纸 | 浅色焦痕 | 20-40% | 注意防火 |
+| 皮革（天然） | 清晰图案 | 30-50% | 人造革会烧焦 |
+| 亚克力（黑色） | 深刻痕 | 60-100% | 透明效果差 |
+| 石材/瓷砖 | 浅色标记 | 80-100% | 需涂覆介质 |
+
+### 可以切割的材料
+- 薄木板（3-5mm）
+- 纸板/卡纸
+- 黑色亚克力
+- 薄皮革
+- 布料（需低功率）
+
+### 不建议使用的材料
+- PVC/ABS 塑料（释放有毒气体）
+- 金属（大部分半导体激光无法切割）
+- 玻璃/陶瓷（容易碎裂）
+- 反光材料（会反射激光造成危险）
+
+### 新手推荐组合
+1. 椴木板 3mm（最安全易上手）
+2. 黑色亚克力 2mm（切割效果好）
+3. 天然皮革（个性化定制）`),
+
+    f('m-a10prov2', 'LaserGRBL 和 LightBurn 怎么选？', 'medium',
+      ['tag-5', 'tag-2'],
+      'LaserGRBL,LightBurn,软件选择,软件对比',
+      '不知道该用 LaserGRBL 还是 LightBurn，两个软件有什么区别？',
+      '两个软件各有优劣，根据使用需求和预算选择。',
+      `## 软件对比
+
+### LaserGRBL（免费）
+**优点：**
+- 完全免费，适合新手入门
+- 操作简单直观
+- 支持图片雕刻、文字排版
+- 社区活跃，教程丰富
+
+**缺点：**
+- 功能相对基础
+- 不支持振镜机型
+- 更新较慢
+- 对复杂设计支持有限
+
+### LightBurn（付费）
+**优点：**
+- 功能强大，专业级设计
+- 支持矢量编辑、图层管理
+- 支持摄像头对齐
+- 支持 G-code 仿真预览
+- 持续更新，支持所有主流机型
+
+**缺点：**
+- 需要付费（约 \$30 激活码）
+- 功能较多，学习曲线稍陡
+
+### 推荐选择
+- **新手/偶尔使用** → LaserGRBL
+- **专业用户/频繁使用** → LightBurn
+- **先免费后付费** → 先用 LaserGRBL 熟悉，再升级 LightBurn`),
+
+    f('m-a70pro', '大功率机型切割木板参数怎么调？', 'high',
+      ['tag-4', 'tag-9'],
+      '切割,木板,参数调节,A70 Pro,大功率',
+      'A70 Pro 大功率机型切割不同厚度的木板，功率和速度应该怎么设置？',
+      '切割参数取决于木板厚度、材质和机型功率，以下是参考参数表。',
+      `## A70 Pro 切割木板参考参数
+
+### 参数表
+| 木板厚度 | 功率 | 速度 | 次数 | 备注 |
+|---------|------|------|------|------|
+| 3mm 椴木板 | 70W 模式 | 6mm/s | 1次 | 使用空气辅助 |
+| 5mm 椴木板 | 70W 模式 | 4mm/s | 1次 | 使用空气辅助 |
+| 8mm 胶合板 | 70W 模式 | 3mm/s | 1次 | 使用空气辅助 |
+| 10mm 胶合板 | 70W 模式 | 2mm/s | 2次 | 使用空气辅助 |
+| 15mm 椴木板 | 70W 模式 | 1.5mm/s | 2次 | 使用空气辅助 |
+| 20mm MDF | 70W 模式 | 1mm/s | 3次 | 使用空气辅助 |
+
+### 重要提示
+1. **必须使用空气辅助**：切割时开启空气辅助可以去除焦渣、提高切割质量
+2. **焦点要准确**：焦点偏离会严重影响切割效果
+3. **先测试再正式切割**：用边角料测试参数
+4. **多次切割时不要移动材料**：保持位置不变
+5. **检查透光情况**：从侧面观察是否完全切透`),
+
+    f('m-kraft', 'Kraft 双光源模式怎么切换？什么时候用红外？', 'medium',
+      ['tag-13', 'tag-6'],
+      'Kraft,双光源,蓝光,红外,模式切换,金属',
+      'Kraft 有蓝光和红外两个光源，什么时候该用哪个？怎么切换？',
+      '蓝光用于雕刻和切割非金属材料，红外用于在金属上打标。',
+      `## 双光源使用指南
+
+### 蓝光模式（20W）
+**适用场景：**
+- 雕刻/切割木材、竹子、纸板、皮革
+- 雕刻亚克力、塑料
+- 雕刻石头、陶瓷（需涂覆介质）
+
+**什么时候用：**
+- 大部分日常雕刻切割任务
+- 需要深雕刻或切割时
+
+### 红外模式（1.2W）
+**适用场景：**
+- 金属表面打标（不锈钢、铝、铜、金、银）
+- 塑料打标（深色 ABS、尼龙）
+- 雕刻电子元件外壳
+
+**什么时候用：**
+- 需要在金属上刻字、刻图案
+- 需要在塑料上做永久标记
+- 制作金属首饰标签
+
+### 双光模式
+**适用场景：**
+- 需要同时雕刻和标记的复合任务
+- 在金属表面先雕刻再标记
+
+### 切换方法
+1. 打开 AtomStack Studio
+2. 在设备设置中选择「光源模式」
+3. 选择「蓝光」「红外」或「双光」
+4. 根据选择的模式调整功率参数`),
+
+    f('m-a5pro', '雕刻效果模糊不清晰怎么办？', 'high',
+      ['tag-3', 'tag-6'],
+      '模糊,不清晰,雕刻效果,焦距,功率',
+      '雕刻出来的图案模糊、边缘不清晰，怎么调才能让效果更锐利？',
+      '雕刻效果模糊通常与焦距、速度、功率和材料有关，按步骤排查。',
+      `## 排查步骤
+
+### 1. 检查焦距（最常见原因）
+1. 将激光头移到雕刻位置
+2. 放置材料后，调整对焦旋钮或滑块
+3. 将对焦片（或卡片）放在激光头和材料之间
+4. 调到焦距片刚好能插进去的间隙
+5. 焦距误差 1mm 就可能导致模糊
+
+### 2. 调整速度和功率
+- **太快** → 浅浅的痕迹，不清晰 → 降低速度或提高功率
+- **太慢** → 过度烧灼，边缘发黑 → 提高速度或降低功率
+- 推荐起始值：功率 50%，速度 1000mm/min
+
+### 3. 检查激光头镜片
+1. 关机后用镜头纸轻轻擦拭保护镜片
+2. 如有灰尘或烟雾残留，用无水酒精清洁
+3. 镜片模糊会大幅降低雕刻质量
+
+### 4. 降低 engraving 速度
+对于精细图案，将速度降低到 300-600mm/min，配合较高功率（80-100%），可以获得更清晰的效果。
+
+### 5. 检查材料表面
+- 材料表面不平整会导致部分区域失焦
+- 涂层材料（如涂色木板）雕刻效果更清晰
+- 材料太光滑可以先用砂纸打磨`),
+
+    f('m-a10prov2', 'LightBurn 连接不上机器怎么办？', 'medium',
+      ['tag-2', 'tag-5'],
+      'LightBurn,连接不上,COM口,CH340,驱动',
+      'LightBurn 软件无法连接到激光雕刻机，设备列表中找不到机器。',
+      '按步骤排查 USB 连接、驱动、COM 口和 LightBurn 设置。',
+      `## 排查步骤
+
+### 1. 确认 USB 连接
+- 更换一根数据线（不要用充电线）
+- 尝试不同的 USB 口（优先 USB 2.0）
+- 不要使用 USB Hub，直接连接电脑
+
+### 2. 检查驱动
+1. 打开「设备管理器」→「端口(COM 和 LPT)」
+2. 如果看到 CH340/COM 设备，说明驱动正常
+3. 如果有黄色感叹号，重新安装 CH340 驱动
+4. 如果完全没有设备，尝试更换 USB 线和接口
+
+### 3. LightBurn 设置
+1. 打开 LightBurn →「设备」→「安装设备」
+2. 选择「AtomStack」品牌和对应机型
+3. 选择正确的 COM 端口
+4. 波特率设置为「115200」
+5. 点击「连接」
+
+### 4. 排除其他占用
+- 关闭其他可能占用串口的软件（LaserGRBL、Arduino IDE 等）
+- 在任务管理器中确认没有其他进程占用 COM 口
+- 重启电脑后再尝试连接`),
+
+    f('m-swift', '便携雕刻机 Swift 的电池续航怎么样？', 'low',
+      ['tag-14', 'tag-13'],
+      'Swift,电池,续航,便携,充电',
+      'Swift 便携雕刻机可以用电池供电吗？续航时间多长？',
+      'Swift 需要外接电源适配器供电，不内置电池，但可以用移动电源。',
+      `## Swift 电源说明
+
+### 供电方式
+1. **标准适配器**：使用包装内附的 12V/2A 电源适配器
+2. **USB 供电**：通过 USB 线连接电脑或 5V 移动电源（功率受限）
+3. **移动电源**：支持 12V 移动电源/充电宝（需确认输出规格）
+
+### 注意事项
+- USB 供电时功率会受限，建议使用原装适配器
+- 不建议在雕刻过程中更换电源
+- 使用移动电源时注意电量，避免雕刻中途断电
+- 断电可能导致雕刻位置丢失`),
+
+    f('m-c4pro', 'C4 Pro CNC 雕刻机支持哪些材料？', 'medium',
+      ['tag-13', 'tag-4'],
+      'C4 Pro,CNC,材料,铣削,加工',
+      'C4 Pro 四轴 CNC 雕刻机能加工什么材料？用什么刀具？',
+      'C4 Pro 支持多种材料的铣削和雕刻，不同材料需要不同的刀具和参数。',
+      `## C4 Pro 支持材料
+
+### 可加工材料
+| 材料 | 刀具 | 主轴转速 | 备注 |
+|------|------|---------|------|
+| 椴木板 | 2-3mm 平底铣刀 | 15000-20000RPM | 最常用 |
+| 亚克力板 | 2mm 平底铣刀 | 12000-15000RPM | 注意排屑 |
+| 铝板 | 2mm 硬质合金铣刀 | 10000-12000RPM | 使用切削液 |
+| 铜板 | 2mm 硬质合金铣刀 | 8000-10000RPM | 低速高进给 |
+| 环氧树脂板 | 1-2mm V 槽刀 | 15000RPM | PCB 雕刻 |
+| 蜡块 | 3-6mm 球头铣刀 | 10000RPM | 翻模用途 |
+
+### 注意事项
+1. 加工金属时务必使用切削液或气冷
+2. 不要用加工金属的刀具加工木材（会变钝）
+3. 每次加工前检查刀具是否锁紧
+4. 设置合理的切削深度，不要一次切太深
+5. 第四轴旋转模式适合圆柱体雕刻`),
+
+    f('m-hurricane', 'Hurricane K60 CO2 激光切割机需要什么耗材？', 'medium',
+      ['tag-14', 'tag-9'],
+      'Hurricane,K60,CO2,耗材,维护,配件',
+      'K60 CO2 激光切割机日常使用需要准备哪些耗材和配件？',
+      'CO2 激光机需要定期更换耗材和补充消耗品。',
+      `## 耗材清单
+
+### 必备耗材
+1. **激光管**：55W CO2 激光管，寿命约 2000-5000 小时
+2. **镜片组**：反射镜 3 片 + 聚焦镜 1 片，每 3-6 个月清洁一次
+3. **冷却水**：纯净水或专用冷却液，每月更换
+4. **空气压缩机**：空气辅助耗材
+
+### 建议常备配件
+1. 备用聚焦镜片（最易损耗）
+2. 备用反射镜片
+3. 对焦片/对焦工具
+4. 激光管密封圈
+
+### 维护周期
+- **每日**：清洁镜片、检查冷却水位
+- **每周**：检查传送带张力、清洁导轨
+- **每月**：更换冷却水、检查激光功率
+- **每季度**：全面检查光学系统
+
+### 购买渠道
+所有耗材可通过 AtomStack 官方网站或授权经销商购买。`),
+
+    f('m-p1', 'P1 Class 1 安全雕刻机适合教育场景吗？', 'high',
+      ['tag-10', 'tag-5'],
+      'P1,安全,Class 1,教育,学校,课堂',
+      'P1 宣称是 Class 1 安全等级，在教室等教育场景使用真的安全吗？',
+      'P1 通过了 IEC 60825-1 Class 1 安全认证，是教育场景的理想选择。',
+      `## P1 安全特性
+
+### Class 1 安全认证
+- IEC 60825-1 国际激光安全标准
+- 正常使用下对人体无害
+- 无需佩戴激光防护眼镜（机器已内置防护）
+- 适合课堂、图书馆、创客空间等场景
+
+### 多重安全保护
+1. **USB 安全钥匙**：插入钥匙才能开机，拔出即断激光
+2. **陀螺仪检测**：设备被倾斜或移动时自动停止激光
+3. **开门断光**：打开盖子立即停止激光输出
+4. **封闭式设计**：全封闭工作区，激光不会外泄
+
+### 教育场景优势
+- 操作简单，适合初学者
+- 体积小巧，不占教室空间
+- 110×110mm 工作区适合制作小件工艺品
+- 双光源（蓝光+红外）可探索金属打标
+
+### 建议的教学流程
+1. 讲解激光安全基础知识
+2. 演示安全钥匙的使用
+3. 指导学生使用软件设计图案
+4. 在教师监督下进行首次雕刻`),
+
+    f('m-a20prov2', '自动对焦怎么用？什么时候需要手动对焦？', 'medium',
+      ['tag-6', 'tag-7'],
+      '自动对焦,手动对焦,焦距调节,A20 Pro',
+      'A20 Pro V2 支持自动对焦，但什么时候需要切换到手动对焦？',
+      '自动对焦适合平面规则材料，特殊场景需要手动对焦。',
+      `## 自动对焦 vs 手动对焦
+
+### 自动对焦
+**适用场景：**
+- 平整的木板、亚克力、纸张
+- 厚度均匀的材料
+- 日常标准雕刻和切割任务
+
+**使用方法：**
+1. 将材料放在工作台上
+2. 在软件中点击「自动对焦」按钮
+3. 激光头会自动下降测量焦距
+4. 完成后即可开始雕刻
+
+### 手动对焦
+**适用场景：**
+- 不规则形状的材料（如圆柱体、球体）
+- 需要精确控制雕刻深度的场景
+- 使用旋转轴时
+- 材料表面不平整
+
+**使用方法：**
+1. 将对焦片放在激光头下方
+2. 上下移动激光头直到对焦片刚好可以轻松抽出
+3. 锁紧 Z 轴固定螺丝
+4. 移除对焦片开始雕刻
+
+### 建议
+- 大多数情况使用自动对焦即可
+- 首次使用新类型材料时，先用手动对焦测试
+- 长时间使用后建议偶尔手动验证焦距精度`),
+
+    f('m-a12pro', '线性导轨需要保养吗？怎么保养？', 'medium',
+      ['tag-14', 'tag-7'],
+      '线性导轨,保养,润滑,维护,A12 Pro',
+      'A12 Pro 的线性导轨 X 轴需要特别的保养吗？怎么清洁和润滑？',
+      '线性导轨需要定期清洁和润滑，保持精度和使用寿命。',
+      `## 线性导轨保养指南
+
+### 清洁周期
+- **日常**：每次使用后用软毛刷清除表面灰尘
+- **每周**：用干净的布蘸少量酒精擦拭导轨表面
+- **每月**：全面清洁并重新涂抹润滑脂
+
+### 清洁步骤
+1. 关机断电
+2. 用软毛刷清除导轨上的碎屑和灰尘
+3. 用无纺布蘸少量异丙醇擦拭导轨表面
+4. 等待完全干燥
+5. 在导轨表面均匀涂抹一层薄薄的润滑脂（推荐锂基脂）
+6. 手动来回移动滑块几次，使润滑脂均匀分布
+7. 擦去多余的润滑脂
+
+### 注意事项
+- 不要使用含有酸性或碱性成分的清洁剂
+- 不要使用 WD-40 等渗透性润滑剂（会稀释原有润滑脂）
+- 不要在导轨上涂抹过多润滑脂（会吸附灰尘）
+- 保持工作环境清洁，减少灰尘进入
+- 如果导轨出现卡顿或异响，及时清洁检查`)
   ]
 }

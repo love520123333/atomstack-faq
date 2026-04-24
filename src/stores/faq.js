@@ -29,9 +29,33 @@ export const useFaqStore = defineStore('faq', () => {
 
   const faqCount = computed(() => faqs.value.length)
   const favoriteCount = computed(() => favorites.value.length)
-  const recentFaqs = computed(() => [...faqs.value].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)).slice(0, 10))
-  const popularFaqs = computed(() => [...faqs.value].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0)).slice(0, 10))
-  const topRatedFaqs = computed(() => [...faqs.value].filter(f => f.rating && f.ratingCount > 0).sort((a, b) => b.rating - a.rating).slice(0, 10))
+  const recentFaqs = computed(() => {
+    // 只取 top 10，不排序全部数组（数据量大时 O(n log n) → O(n)）
+    return faqs.value.length <= 10
+      ? [...faqs.value].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+      : quickTop(faqs.value, 10, (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+  })
+  const popularFaqs = computed(() => {
+    return faqs.value.length <= 10
+      ? [...faqs.value].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+      : quickTop(faqs.value, 10, (a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+  })
+  const topRatedFaqs = computed(() =>
+    [...faqs.value].filter(f => f.rating && f.ratingCount > 0).sort((a, b) => b.rating - a.rating).slice(0, 10)
+  )
+
+  // 快速取 top N（部分排序），避免全量 sort
+  function quickTop(arr, n, cmp) {
+    const copy = arr.slice(0, n)
+    for (let i = n; i < arr.length; i++) {
+      let minIdx = 0
+      for (let j = 1; j < n; j++) {
+        if (cmp(copy[j], copy[minIdx]) < 0) minIdx = j
+      }
+      if (cmp(arr[i], copy[minIdx]) > 0) copy[minIdx] = arr[i]
+    }
+    return copy.sort(cmp)
+  }
 
   function getFaqsByMachine(machineId) { return faqs.value.filter(f => f.machineId === machineId) }
   function getFaqsByCategory(categoryId, machineStore) {
@@ -46,9 +70,16 @@ export const useFaqStore = defineStore('faq', () => {
     const idx = faqs.value.findIndex(f => f.id === n.id)
     if (idx !== -1) faqs.value[idx] = { ...faqs.value[idx], ...n }
     else faqs.value.push(n)
-    updateTagUsage()
-    if (!skipSave) save('faq-list', faqs.value)
+    if (!skipSave) {
+      updateTagUsage(); save('faq-list', faqs.value)
+    }
     return n
+  }
+
+  // 批量更新标签使用计数（一次性，避免逐条更新）
+  function batchUpdateTagUsage() {
+    updateTagUsage()
+    save('faq-tags', tags.value)
   }
 
   function updateFaq(id, data) {
@@ -74,7 +105,7 @@ export const useFaqStore = defineStore('faq', () => {
 
   function recordView(id) {
     const faq = faqs.value.find(f => f.id === id)
-    if (faq) { faq.viewCount = (faq.viewCount || 0) + 1; faq.updatedAt = new Date().toISOString(); save('faq-list', faqs.value) }
+    if (faq) { faq.viewCount = (faq.viewCount || 0) + 1; save('faq-list', faqs.value) }
     const ei = viewHistory.value.findIndex(h => h.faqId === id)
     if (ei !== -1) { viewHistory.value[ei].viewedAt = new Date().toISOString(); viewHistory.value[ei].count = (viewHistory.value[ei].count || 0) + 1 }
     else viewHistory.value.unshift({ faqId: id, viewedAt: new Date().toISOString(), count: 1 })
@@ -129,12 +160,75 @@ export const useFaqStore = defineStore('faq', () => {
   function getTag(id) { return tags.value.find(x => x.id === id) }
 
   function searchFaqs(query, options = {}) {
-    const q = query.toLowerCase()
-    let result = faqs.value.filter(f =>
-      f.title.toLowerCase().includes(q) || (f.content || '').toLowerCase().includes(q) ||
-      (f.summary || '').toLowerCase().includes(q) || (f.solution || '').toLowerCase().includes(q) ||
-      (f.keywords || '').toLowerCase().includes(q)
-    )
+    const q = query.toLowerCase().trim()
+    if (!q || q === ' ') return faqs.value.slice() // 空查询返回全部
+
+    // 将查询拆分为多个关键词，支持空格分词
+    const keywords = q.split(/\s+/).filter(k => k.length > 0)
+
+    // 计算相关性评分
+    function relevanceScore(faq) {
+      let score = 0
+      for (const kw of keywords) {
+        // 标题精确匹配（权重最高）
+        if (faq.title.toLowerCase().includes(kw)) score += 10
+        // 关键词字段匹配
+        if ((faq.keywords || '').toLowerCase().includes(kw)) score += 8
+        // 标题分词匹配（每个词）
+        const titleWords = faq.title.toLowerCase().split(/[\s,，、：:；;（）()【】\[\]]+/)
+        for (const tw of titleWords) {
+          if (tw === kw) score += 15 // 完全词匹配比包含更高
+        }
+        // 摘要匹配
+        if ((faq.summary || '').toLowerCase().includes(kw)) score += 5
+        // 解决方案匹配
+        if ((faq.solution || '').toLowerCase().includes(kw)) score += 3
+        // 内容匹配
+        if ((faq.content || '').toLowerCase().includes(kw)) score += 2
+        // 标签匹配
+        if (faq.tags) {
+          for (const tid of faq.tags) {
+            const tag = tags.value.find(t => t.id === tid)
+            if (tag && tag.name.toLowerCase().includes(kw)) score += 6
+          }
+        }
+      }
+      // 多关键词全部命中加分
+      const allMatched = keywords.every(kw =>
+        faq.title.toLowerCase().includes(kw) ||
+        (faq.keywords || '').toLowerCase().includes(kw) ||
+        (faq.summary || '').toLowerCase().includes(kw) ||
+        (faq.solution || '').toLowerCase().includes(kw)
+      )
+      if (allMatched && keywords.length > 1) score += 20
+
+      // 优先级加分
+      const po = { critical: 3, high: 2, medium: 1, low: 0 }
+      score += (po[faq.priority] || 0)
+
+      // 热度加分
+      score += Math.min((faq.viewCount || 0) / 100, 2)
+      score += Math.min((faq.helpfulCount || 0) / 10, 2)
+
+      return score
+    }
+
+    // 模糊匹配：只要任意关键词命中任意字段就保留
+    let result = faqs.value.filter(faq => {
+      return keywords.some(kw =>
+        faq.title.toLowerCase().includes(kw) ||
+        (faq.content || '').toLowerCase().includes(kw) ||
+        (faq.summary || '').toLowerCase().includes(kw) ||
+        (faq.solution || '').toLowerCase().includes(kw) ||
+        (faq.keywords || '').toLowerCase().includes(kw) ||
+        (faq.tags || []).some(tid => {
+          const tag = tags.value.find(t => t.id === tid)
+          return tag && tag.name.toLowerCase().includes(kw)
+        })
+      )
+    })
+
+    // 筛选
     if (options.machineId) result = result.filter(f => f.machineId === options.machineId)
     if (options.tagId) result = result.filter(f => f.tags && f.tags.includes(options.tagId))
     if (options.categoryId && options.machineStore) {
@@ -143,13 +237,17 @@ export const useFaqStore = defineStore('faq', () => {
     }
     if (options.priority) result = result.filter(f => f.priority === options.priority)
     if (options.status) result = result.filter(f => f.status === options.status)
+
+    // 排序
     switch (options.sortBy) {
       case 'newest': result.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)); break
       case 'oldest': result.sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt)); break
       case 'popular': result.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0)); break
       case 'rating': result.sort((a, b) => (b.rating || 0) - (a.rating || 0)); break
       case 'helpful': result.sort((a, b) => (b.helpfulCount || 0) - (a.helpfulCount || 0)); break
-      default: result.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+      default:
+        // 默认按相关性评分排序
+        result.sort((a, b) => relevanceScore(b) - relevanceScore(a))
     }
     return result
   }
@@ -160,6 +258,7 @@ export const useFaqStore = defineStore('faq', () => {
     getFaqsByMachine, getFaqsByCategory, getFaq,
     addFaq, updateFaq, deleteFaq, recordView, rateFaq, markHelpful, toggleFavorite, isFavorite,
     addTag, updateTag, deleteTag, getTagName, getTag,
+    batchUpdateTagUsage,
     searchFaqs
   }
 })

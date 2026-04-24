@@ -42,14 +42,19 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Edit, MoreFilled, Document } from '@element-plus/icons-vue'
+import { Plus, Edit, MoreFilled, Document, Folder } from '@element-plus/icons-vue'
 import { useMachineStore } from '../stores/machine'
 import { useFaqStore } from '../stores/faq'
+import { initSampleData } from '../data/sampleData'
 
 const machineStore = useMachineStore()
 const faqStore = useFaqStore()
+
+onMounted(() => {
+  initSampleData(machineStore, faqStore)
+})
 
 const dialogVisible = ref(false)
 const editing = ref(null)

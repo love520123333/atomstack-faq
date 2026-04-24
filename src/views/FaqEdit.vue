@@ -98,13 +98,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Check, EditPen } from '@element-plus/icons-vue'
 import { useFaqStore } from '../stores/faq'
 import { useMachineStore } from '../stores/machine'
 import { renderMarkdown } from '../utils'
+import { initSampleData } from '../data/sampleData'
 
 const route = useRoute()
 const router = useRouter()
@@ -119,7 +120,9 @@ const form = ref({
   tags: [], keywords: '', summary: '', solution: '', content: ''
 })
 
-onMounted(() => {
+onMounted(async () => {
+  initSampleData(machineStore, faqStore)
+  await nextTick()
   if (isEdit.value) {
     const faq = faqStore.getFaq(route.params.id)
     if (faq) {
