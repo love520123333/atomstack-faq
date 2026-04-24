@@ -117,7 +117,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Star, StarFilled, Edit, Download, Printer, MoreFilled, ArrowLeft, Monitor, Folder, View, Clock, Top } from '@element-plus/icons-vue'
@@ -161,6 +161,17 @@ onMounted(async () => {
   if (faq.value) {
     faqStore.recordView(faq.value.id)
     myRating.value = faq.value.rating || 0
+  }
+})
+
+// 组件复用时（从一个 FAQ 导航到另一个），重新记录浏览和更新评分
+watch(() => route.params.id, async (newId) => {
+  if (!newId) return
+  await nextTick()
+  const f = faqStore.getFaq(newId)
+  if (f) {
+    faqStore.recordView(f.id)
+    myRating.value = f.rating || 0
   }
 })
 

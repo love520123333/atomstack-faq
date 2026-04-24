@@ -132,11 +132,12 @@ watchEffect(() => {
   const tag = route.query.tag
   const category = route.query.category
   const priority = route.query.priority
-  if (q) { query.value = String(q) }
-  if (machine) { optMachine.value = String(machine) }
-  if (tag) { optTag.value = String(tag) }
-  if (category) { optCategory.value = String(category) }
-  if (priority) { optPriority.value = String(priority) }
+  // 始终同步 query 参数（包括清空的情况）
+  query.value = q ? String(q) : ''
+  optMachine.value = machine ? String(machine) : ''
+  optTag.value = tag ? String(tag) : ''
+  optCategory.value = category ? String(category) : ''
+  optPriority.value = priority ? String(priority) : ''
   if (q || machine || tag || category || priority) {
     searched.value = true
     currentPage.value = 1

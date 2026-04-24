@@ -61,7 +61,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watchEffect } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { HomeFilled, Monitor, Document, Search, Star, Folder, PriceTag, DataAnalysis, Upload, Download, Delete, DArrowLeft, DArrowRight, UploadFilled, View } from '@element-plus/icons-vue'
@@ -78,10 +78,8 @@ const globalSearch = ref('')
 const showImport = ref(false)
 const importFile = ref(null)
 
-// 每次路由变化都确保数据已初始化（应对直接访问任意页面的场景）
-watchEffect(() => {
-  // 访问 route.path 建立依赖，路由变化时重新执行
-  void route.path
+// 应用启动时初始化数据（只执行一次，main.js 中也会执行）
+onMounted(() => {
   initSampleData(machineStore, faqStore)
 })
 

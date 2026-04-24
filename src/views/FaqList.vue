@@ -92,7 +92,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Document, View, Top, ArrowRight, EditPen, Delete } from '@element-plus/icons-vue'
@@ -120,12 +120,20 @@ const hasFilter = ref(false)
 // 从 URL query 读取初始筛选条件
 onMounted(() => {
   initSampleData(machineStore, faqStore)
+})
+
+// 响应路由 query 变化（从其他页面跳转过来时带筛选条件）
+watch(() => route.query, () => {
   if (route.query.machine) filterMachine.value = route.query.machine
+  else if (!filterMachine.value) {} // 保持用户手动选择
   if (route.query.category) filterCategory.value = route.query.category
   if (route.query.tag) filterTag.value = route.query.tag
   if (route.query.sortBy) sortBy.value = route.query.sortBy
-  hasFilter.value = !!(filterMachine.value || filterCategory.value || filterTag.value)
-})
+  if (route.query.machine || route.query.category || route.query.tag) {
+    hasFilter.value = true
+    currentPage.value = 1
+  }
+}, { immediate: true })
 
 const selectedMachine = computed(() => machineStore.getMachine(filterMachine.value))
 

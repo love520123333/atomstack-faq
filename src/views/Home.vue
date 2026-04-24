@@ -115,7 +115,7 @@
 
         <!-- 浏览历史 -->
         <el-card shadow="hover" class="mb-16">
-          <template #header><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700">浏览历史</span><el-button text type="danger" size="small" @click="faqStore.viewHistory.splice(0);localStorage.removeItem('faq-history')">清除</el-button></div></template>
+          <template #header><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700">浏览历史</span><el-button text type="danger" size="small" @click="clearHistory">清除</el-button></div></template>
           <div class="history-list" v-if="faqStore.historyWithFaq.length">
             <div class="history-item" v-for="h in faqStore.historyWithFaq.slice(0, 8)" :key="h.faqId" @click="$router.push(`/faq/${h.faqId}`)">
               <span class="history-title">{{ h.faq.title }}</span>
@@ -155,6 +155,11 @@ const router = useRouter()
 onMounted(() => {
   initSampleData(machineStore, faqStore)
 })
+
+function clearHistory() {
+  faqStore.viewHistory.splice(0)
+  try { localStorage.removeItem('faq-history') } catch {}
+}
 
 const currentTime = ref(new Date().toLocaleString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }))
 
