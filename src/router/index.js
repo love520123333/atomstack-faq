@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 
 const routes = [
   // 管理后台路由
@@ -27,8 +27,9 @@ const routes = [
 ]
 
 const router = createRouter({
-  // 和 vite.config.js 的 base 保持一致，支持 GitHub Pages 子路径部署
-  history: createWebHistory(import.meta.env.BASE_URL),
+  // 使用 Hash 模式，彻底解决 GitHub Pages 子路径 404 问题
+  // URL 格式: https://xxx.github.io/atomstack-faq/#/faq
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes,
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) return savedPosition

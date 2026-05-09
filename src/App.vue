@@ -61,13 +61,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { HomeFilled, Monitor, Document, Search, Star, Folder, PriceTag, DataAnalysis, Upload, Download, Delete, DArrowLeft, DArrowRight, UploadFilled, View } from '@element-plus/icons-vue'
 import { useFaqStore } from './stores/faq'
 import { useMachineStore } from './stores/machine'
-import { initSampleData } from './data/sampleData'
 
 const router = useRouter()
 const route = useRoute()
@@ -77,11 +76,6 @@ const collapsed = ref(false)
 const globalSearch = ref('')
 const showImport = ref(false)
 const importFile = ref(null)
-
-// 应用启动时初始化数据（只执行一次，main.js 中也会执行）
-onMounted(() => {
-  initSampleData(machineStore, faqStore)
-})
 
 // 判断是否为帮助中心路由
 const isHelpRoute = computed(() => {

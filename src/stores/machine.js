@@ -13,7 +13,8 @@ export const useMachineStore = defineStore('machine', () => {
     { id: 'cat-4', name: 'CNC雕刻机', icon: 'SetUp', color: '#f56c6c', description: 'C4 Pro 四轴CNC雕刻机' },
     { id: 'cat-5', name: 'CO₂激光雕刻机', icon: 'Sunny', color: '#b37feb', description: 'Hurricane (K60) 二氧化碳激光雕刻机' },
     { id: 'cat-6', name: '拓展配件', icon: 'Box', color: '#909399', description: '旋转模块、传送带、空气净化器、空气辅助等' },
-    { id: 'cat-7', name: '防护与工作台', icon: 'Shield', color: '#36cfc9', description: '防护箱、蜂窝板、增高台等' }
+    { id: 'cat-7', name: '防护与工作台', icon: 'Shield', color: '#36cfc9', description: '防护箱、蜂窝板、增高台等' },
+    { id: 'cat-8', name: '经典系列', icon: 'Box', color: '#e6a23c', description: 'A5 M50、A10 Pro、A20 Pro、X7/X20/X30/X40 等老款停产机型（仍在使用中）' }
   ]))
 
   const machines = ref(load('faq-machines', []))
